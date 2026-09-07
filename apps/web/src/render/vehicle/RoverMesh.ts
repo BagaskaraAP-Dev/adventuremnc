@@ -107,7 +107,7 @@ export function createRoverMesh(): RoverMeshInstance {
   dish.rotation.x = 0.5;
   bodyGroup.add(dish);
 
-  // Twin LED headlights
+  // Twin LED headlights + dynamic spotlights
   const headlampGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.12, 12);
   const leftLight = new THREE.Mesh(headlampGeo, lightMaterial);
   leftLight.rotation.x = Math.PI / 2;
@@ -119,28 +119,74 @@ export function createRoverMesh(): RoverMeshInstance {
   rightLight.position.set(0.55, 0.22, -1.35);
   bodyGroup.add(rightLight);
 
-  // 2. Wheels (4 wire-mesh open lunar wheels with hubs)
+  const spotLeft = new THREE.SpotLight(0xffffff, 4.0, 50, Math.PI / 5, 0.35, 1.2);
+  spotLeft.position.set(-0.55, 0.22, -1.35);
+  spotLeft.target.position.set(-0.55, -0.5, -25);
+  bodyGroup.add(spotLeft);
+  bodyGroup.add(spotLeft.target);
+
+  const spotRight = new THREE.SpotLight(0xffffff, 4.0, 50, Math.PI / 5, 0.35, 1.2);
+  spotRight.position.set(0.55, 0.22, -1.35);
+  spotRight.target.position.set(0.55, -0.5, -25);
+  bodyGroup.add(spotRight);
+  bodyGroup.add(spotRight.target);
+
+  // Wheel sub-materials
+  const spokeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x5a6068,
+    roughness: 0.4,
+    metalness: 0.8,
+  });
+
+  const cleatMaterial = new THREE.MeshStandardMaterial({
+    color: 0xe0e0e0,
+    roughness: 0.3,
+    metalness: 0.9,
+  });
+
+  // 2. Wheels (4 wire-mesh open lunar wheels with hubs, spokes, and titanium chevrons)
   function buildWheelMesh(): { wheelPivot: THREE.Group; wheelSpinGroup: THREE.Group } {
     const pivot = new THREE.Group();
     const spin = new THREE.Group();
     pivot.add(spin);
 
-    // Torus tire
+    // Torus tire: rotated into YZ plane so rolling axis is along X
     const tire = new THREE.Mesh(
-      new THREE.TorusGeometry(0.35, 0.12, 12, 24),
+      new THREE.TorusGeometry(0.35, 0.11, 14, 28),
       wheelMeshMaterial
     );
+    tire.rotation.y = Math.PI / 2;
     tire.castShadow = true;
     spin.add(tire);
 
-    // Center hubcap
+    // Center hubcap cylinder: axis aligned along X
     const hub = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.16, 0.16, 0.22, 16),
+      new THREE.CylinderGeometry(0.14, 0.14, 0.24, 16),
       hubMaterial
     );
-    hub.rotation.x = Math.PI / 2;
+    hub.rotation.z = Math.PI / 2;
     hub.castShadow = true;
     spin.add(hub);
+
+    // 6 Interior radial spokes so wheel rotation is unmistakably visible
+    const spokeGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.35, 6);
+    for (let s = 0; s < 6; s++) {
+      const spoke = new THREE.Mesh(spokeGeo, spokeMaterial);
+      const angle = (s * Math.PI) / 3;
+      spoke.position.set(0, Math.sin(angle) * 0.17, Math.cos(angle) * 0.17);
+      spoke.rotation.x = angle;
+      spin.add(spoke);
+    }
+
+    // 12 Outer titanium chevron cleats around rim
+    const cleatGeo = new THREE.BoxGeometry(0.22, 0.025, 0.05);
+    for (let c = 0; c < 12; c++) {
+      const cleat = new THREE.Mesh(cleatGeo, cleatMaterial);
+      const theta = (c * Math.PI * 2) / 12;
+      cleat.position.set(0, Math.sin(theta) * 0.35, Math.cos(theta) * 0.35);
+      cleat.rotation.x = -theta;
+      spin.add(cleat);
+    }
 
     return { wheelPivot: pivot, wheelSpinGroup: spin };
   }
@@ -194,7 +240,7 @@ export function createRoverMesh(): RoverMeshInstance {
 
   const getDriverSeatPosition = (target: THREE.Vector3) => {
     driverSeat.getWorldPosition(target);
-    target.y += 0.2;
+    target.y -= 0.3;
   };
 
   return {

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 export interface AstronautMeshInstance {
   group: THREE.Group;
   updateAnimation: (lopingCycle: number, isGrounded: boolean, vy: number, speed: number) => void;
+  setSeatedPose: (seated: boolean) => void;
 }
 
 /**
@@ -114,7 +115,24 @@ export function createAstronautMesh(): AstronautMeshInstance {
   rightArm.add(rightArmMesh);
   bodyGroup.add(rightArm);
 
+  let isSeated = false;
+  const setSeatedPose = (seated: boolean) => {
+    isSeated = seated;
+    if (seated) {
+      bodyGroup.position.y = 0;
+      bodyGroup.rotation.x = 0;
+      // Legs bent forward at hips in rover seated position
+      leftLeg.rotation.x = 1.35;
+      rightLeg.rotation.x = 1.35;
+      // Arms forward on rover steering controller
+      leftArm.rotation.x = 0.8;
+      rightArm.rotation.x = 0.8;
+    }
+  };
+
   const updateAnimation = (lopingCycle: number, isGrounded: boolean, vy: number, speed: number) => {
+    if (isSeated) return;
+
     if (isGrounded) {
       if (speed > 0.1) {
         // Apollo Loping Bounding Gait: vertical hopping bob + leg swing
@@ -151,5 +169,6 @@ export function createAstronautMesh(): AstronautMeshInstance {
   return {
     group,
     updateAnimation,
+    setSeatedPose,
   };
 }

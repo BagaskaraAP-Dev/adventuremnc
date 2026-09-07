@@ -39,8 +39,44 @@ export class ThirdPersonCamera {
     });
   }
 
+  public targetDistance = 3.6;
+  public targetLookAtHeight = 1.25;
+
+  public setTargetProfile(distance: number, height: number, snapYaw?: number): void {
+    this.targetDistance = distance;
+    this.targetLookAtHeight = height;
+    if (snapYaw !== undefined) {
+      this.yaw = snapYaw;
+    }
+  }
+
+  public updateRover(
+    targetX: number,
+    targetY: number,
+    targetZ: number,
+    roverYaw: number,
+    dt: number
+  ): void {
+    // Smooth chase-camera tracking behind rover heading
+    let diff = roverYaw - this.yaw;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    this.yaw += diff * Math.min(1.0, dt * 4.0);
+
+    // Keep pitch comfortable for vehicle driving
+    this.pitch = Math.max(0.1, Math.min(0.55, this.pitch));
+
+    this.updateInternal(targetX, targetY, targetZ, dt);
+  }
+
   public update(targetX: number, targetY: number, targetZ: number, dt: number): void {
-    const targetLookAt = new THREE.Vector3(targetX, targetY + 1.25, targetZ);
+    this.updateInternal(targetX, targetY, targetZ, dt);
+  }
+
+  private updateInternal(targetX: number, targetY: number, targetZ: number, dt: number): void {
+    this.distance += (this.targetDistance - this.distance) * Math.min(1.0, dt * 8);
+
+    const targetLookAt = new THREE.Vector3(targetX, targetY + this.targetLookAtHeight, targetZ);
 
     // Calculate desired spherical camera position relative to target
     const cosPitch = Math.cos(this.pitch);

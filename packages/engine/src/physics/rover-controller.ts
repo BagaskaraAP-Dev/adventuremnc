@@ -127,8 +127,13 @@ export class RoverController {
     // 3. Acceleration & Low-Traction Braking
     if (this.state.isGrounded) {
       if (inputs.throttle > 0) {
-        // Accelerate forward up to max speed
-        if (this.state.speed < ROVER_MAX_SPEED) {
+        if (this.state.speed < 0) {
+          // Active braking from reverse motion
+          this.state.speed = Math.min(
+            0,
+            this.state.speed + ROVER_BRAKE_DECEL * inputs.throttle * dt
+          );
+        } else if (this.state.speed < ROVER_MAX_SPEED) {
           this.state.speed = Math.min(
             ROVER_MAX_SPEED,
             this.state.speed + ROVER_MOTOR_ACCEL * inputs.throttle * dt

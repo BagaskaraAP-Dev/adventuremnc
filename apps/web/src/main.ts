@@ -66,12 +66,14 @@ function bootstrap(): void {
       const charState = character.getState();
       if (rover.canInteract(charState.x, charState.z)) {
         gameMode = 'ROVER_DRIVING';
-        // Seat character in vehicle
-        astronautMesh.group.rotation.set(0, 0, 0);
-        astronautMesh.updateAnimation(0, false, 0, 0);
+        const rState = rover.getState();
+        // Snap chase camera directly behind rover facing forward
+        thirdPersonCamera.setTargetProfile(6.2, 1.45, rState.yaw);
+        astronautMesh.setSeatedPose(true);
       }
     } else if (gameMode === 'ROVER_DRIVING') {
       gameMode = 'EVA_ASTRONAUT';
+      astronautMesh.setSeatedPose(false);
       const rState = rover.getState();
       // Dismount beside rover
       const exitX = rState.x - Math.cos(rState.yaw) * 2.2;
@@ -86,6 +88,7 @@ function bootstrap(): void {
         vz: 0,
         isGrounded: true,
       });
+      thirdPersonCamera.setTargetProfile(3.6, 1.25);
       thirdPersonCamera.reset(exitX, exitGroundY, exitZ);
     }
   };
@@ -142,8 +145,8 @@ function bootstrap(): void {
         rover.update(roverInputs, dt);
         const rState = rover.getState();
 
-        // Update wheel spin
-        wheelSpinAngle += (rState.speed / 0.35) * dt;
+        // Update wheel spin: rolling forward along Z requires negative X-axis spin
+        wheelSpinAngle -= (rState.speed / 0.35) * dt;
         roverMesh.updatePose(
           rState.x,
           rState.y,
@@ -155,11 +158,11 @@ function bootstrap(): void {
           wheelSpinAngle
         );
 
-        // Mount astronaut on driver seat
+        // Mount astronaut on driver seat facing forward along rover heading
         const seatPos = new THREE.Vector3();
         roverMesh.getDriverSeatPosition(seatPos);
         astronautMesh.group.position.copy(seatPos);
-        astronautMesh.group.rotation.set(0, rState.yaw, 0, 'YXZ');
+        astronautMesh.group.rotation.set(0, rState.yaw + Math.PI, 0, 'YXZ');
 
         // Emit ballistic dust particles from rear wheels
         if (Math.abs(rState.speed) > 0.6) {
@@ -175,7 +178,7 @@ function bootstrap(): void {
           }
         }
 
-        thirdPersonCamera.update(rState.x, rState.y, rState.z, dt);
+        thirdPersonCamera.updateRover(rState.x, rState.y, rState.z, rState.yaw, dt);
         terrainManager.update(rState.x, rState.z);
       } else if (gameMode === 'EVA_ASTRONAUT') {
         const charInputs = inputManager.getCharacterInputs(thirdPersonCamera.yaw);

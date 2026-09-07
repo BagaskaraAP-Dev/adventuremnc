@@ -43,6 +43,9 @@
 ### 8. GPU Ballistic Regolith Particles (Zero-Atmosphere Physics)
 - Rationale: In atmospheric environments, tire dust creates billowing turbulent smoke clouds with air drag. On the Moon, vacuum dictates that every single ejected dust grain follows a purely ballistic parabolic trajectory $\mathbf{P}(t) = \mathbf{p}_0 + \mathbf{v}_0 t + \frac{1}{2}\mathbf{g} t^2$ without drag or turbulence. This is evaluated entirely in the GPU vertex shader with lifetime $T_{flight} = 2 v_{0y} / g$, guaranteeing that 100% of particles land back onto the ground.
 
+### 9. Vehicle Chase Camera & Apollo LRV Wheel Kinematics
+- Rationale: Free-orbit cameras during vehicle control lead to inverted movement perception when the camera faces the front bumper (pressing W drives the rover toward the player screen). We implemented an active third-person chase camera that dynamically springs behind the rover's heading angle (`camera.yaw -> rover.yaw`). Additionally, lunar wire-mesh wheels must rotate in the YZ plane around the transverse X axle with radial spokes and titanium chevron cleats to provide unambiguous visual rotation feedback in high-contrast vacuum lighting.
+
 ## Known Gaps (M3)
 - Life support survival systems (O2 depletion & PSR cryogenic freezing) (scheduled for M4).
 - Hab airlock interior zones as refill/save stations (scheduled for M4).
