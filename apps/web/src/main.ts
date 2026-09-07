@@ -13,10 +13,12 @@ import { ThirdPersonCamera } from './render/camera/ThirdPersonCamera';
 import { FlyCamera } from './render/camera/FlyCamera';
 import { createAstronautMesh } from './render/character/AstronautMesh';
 import { createRoverMesh } from './render/vehicle/RoverMesh';
+import { createHabitatMesh } from './render/scene/HabitatMesh';
 import { BallisticDustParticles } from './render/particles/BallisticDustParticles';
 import { InputManager } from './input/InputManager';
 import { HUD } from './ui/HUD';
 import { CtfManager } from './ctf/CtfManager';
+import { LocalSaveManager } from './save/LocalSaveManager';
 
 function bootstrap(): void {
   const canvas = document.getElementById('render-canvas') as HTMLCanvasElement;
@@ -28,12 +30,40 @@ function bootstrap(): void {
   const terrainManager = new TerrainManager(lunarScene.scene, regolithMat);
   const dustParticles = new BallisticDustParticles(lunarScene.scene);
 
-  // Entities
-  const character = new EvaCharacterController(0, 0);
+  // Habitat Base Module (Airlock at X: -22, Z: -9.8)
+  const habitat = createHabitatMesh(-22, -18);
+  lunarScene.scene.add(habitat.group);
+
+  // Entities: Restore from Local Save if exists, else initial landing point
+  const savedState = LocalSaveManager.load();
+
+  const spawnX = savedState ? savedState.character.x : habitat.airlockX;
+  const spawnZ = savedState ? savedState.character.z : habitat.airlockZ + 2.5;
+
+  const character = new EvaCharacterController(spawnX, spawnZ);
+  if (savedState) {
+    character.setState({
+      y: savedState.character.y,
+      health: savedState.character.health,
+      oxygen: savedState.character.oxygen,
+      suitTemperature: savedState.character.suitTemperature,
+      suitIntegrity: savedState.character.suitIntegrity,
+      yaw: savedState.character.yaw,
+    });
+  }
+
   const astronautMesh = createAstronautMesh();
   lunarScene.scene.add(astronautMesh.group);
 
-  const rover = new RoverController(12, 12);
+  const roverStartX = savedState ? savedState.rover.x : -14;
+  const roverStartZ = savedState ? savedState.rover.z : -10;
+  const rover = new RoverController(roverStartX, roverStartZ);
+  if (savedState) {
+    rover.setState({
+      yaw: savedState.rover.yaw,
+    });
+  }
+
   const roverMesh = createRoverMesh();
   lunarScene.scene.add(roverMesh.group);
 
@@ -52,6 +82,22 @@ function bootstrap(): void {
     ctfManager.toggleTerminal();
   };
 
+  // Sun vs Shadow analytical horizon raycaster (based on low elevation lunar sun)
+  const sunDir = new THREE.Vector3(1, 0.0314, 0.4).normalize();
+  function checkIsInSunlight(x: number, y: number, z: number): boolean {
+    const steps = [6, 18, 45, 110, 240];
+    for (const dist of steps) {
+      const rx = x + sunDir.x * dist;
+      const rz = z + sunDir.z * dist;
+      const ry = y + 1.5 + sunDir.y * dist;
+      const groundH = sampleLunarElevation(rx, rz);
+      if (groundH > ry) {
+        return false; // Terrain occludes sun -> deep shadow
+      }
+    }
+    return true; // Direct sunlight
+  }
+
   // Camera Mode Toggle
   inputManager.onToggleCameraMode = () => {
     if (gameMode === 'FLY_CAMERA') {
@@ -66,22 +112,58 @@ function bootstrap(): void {
     }
   };
 
-  // Vehicle Enter / Exit Interaction
+  // Interaction: Habitat Airlock Cycle or Vehicle Enter / Exit
   inputManager.onInteract = () => {
+    const charState = character.getState();
+
+    // Priority 1: Habitat Airlock Interaction (Cycle, Refill Life Support & Save)
+    if (gameMode === 'EVA_ASTRONAUT' && habitat.canInteractAirlock(charState.x, charState.z)) {
+      character.setState({
+        health: 100,
+        oxygen: 100,
+        suitTemperature: 21.0,
+        suitIntegrity: 100,
+        isDead: false,
+        deathReason: 'NONE',
+      });
+
+      const rState = rover.getState();
+      LocalSaveManager.save(
+        {
+          x: charState.x,
+          y: charState.y,
+          z: charState.z,
+          yaw: charState.yaw,
+          health: 100,
+          oxygen: 100,
+          suitTemperature: 21.0,
+          suitIntegrity: 100,
+        },
+        {
+          x: rState.x,
+          y: rState.y,
+          z: rState.z,
+          yaw: rState.yaw,
+        }
+      );
+
+      hud.showToast('💾 HABITAT AIRLOCK CYCLED // LIFE SUPPORT RECHARGED // PROGRESS SAVED');
+      return;
+    }
+
+    // Priority 2: Rover Mount / Dismount
     if (gameMode === 'EVA_ASTRONAUT') {
-      const charState = character.getState();
       if (rover.canInteract(charState.x, charState.z)) {
         gameMode = 'ROVER_DRIVING';
         const rState = rover.getState();
-        // Snap chase camera directly behind rover facing forward
         thirdPersonCamera.setTargetProfile(6.2, 1.45, rState.yaw);
         astronautMesh.setSeatedPose(true);
+        hud.showToast('🚜 PRESSURIZED COCKPIT SEALED // LIFE SUPPORT CHARGING');
       }
     } else if (gameMode === 'ROVER_DRIVING') {
       gameMode = 'EVA_ASTRONAUT';
       astronautMesh.setSeatedPose(false);
       const rState = rover.getState();
-      // Dismount beside rover
       const exitX = rState.x - Math.cos(rState.yaw) * 2.2;
       const exitZ = rState.z + Math.sin(rState.yaw) * 2.2;
       const exitGroundY = sampleLunarElevation(exitX, exitZ);
@@ -99,24 +181,39 @@ function bootstrap(): void {
     }
   };
 
-  inputManager.onRespawn = () => {
-    const groundY = sampleLunarElevation(0, 0);
+  const executeRespawn = () => {
+    const respawnX = habitat.airlockX;
+    const respawnZ = habitat.airlockZ + 2.2;
+    const respawnGroundY = sampleLunarElevation(respawnX, respawnZ);
+
     character.setState({
-      x: 0,
-      y: groundY,
-      z: 0,
+      x: respawnX,
+      y: respawnGroundY,
+      z: respawnZ,
       vx: 0,
       vy: 0,
       vz: 0,
       health: 100,
+      oxygen: 100,
+      suitTemperature: 21.0,
+      suitIntegrity: 100,
       isDead: false,
+      deathReason: 'NONE',
       isGrounded: true,
       lastImpactSpeed: 0,
       jumpApex: 0,
     });
+
     gameMode = 'EVA_ASTRONAUT';
-    thirdPersonCamera.reset(0, groundY, 0);
+    astronautMesh.setSeatedPose(false);
+    thirdPersonCamera.setTargetProfile(3.6, 1.25);
+    thirdPersonCamera.reset(respawnX, respawnGroundY, respawnZ);
+
+    hud.showToast('🚀 ASTRONAUT RE-DEPLOYED AT HABITAT AIRLOCK');
   };
+
+  inputManager.onRespawn = executeRespawn;
+  hud.onRespawn = executeRespawn;
 
   // Initial Sync
   const initCharState = character.getState();
@@ -151,7 +248,21 @@ function bootstrap(): void {
         rover.update(roverInputs, dt);
         const rState = rover.getState();
 
-        // Update wheel spin: rolling forward along Z requires negative X-axis spin
+        // Driving inside rover cockpit: Pressurized shelter!
+        character.update(
+          {
+            moveForward: false,
+            moveBackward: false,
+            moveLeft: false,
+            moveRight: false,
+            sprint: false,
+            jump: false,
+            cameraYaw: rState.yaw,
+          },
+          dt,
+          { isInSunlight: true, isInsideShelter: true }
+        );
+
         wheelSpinAngle -= (rState.speed / 0.35) * dt;
         roverMesh.updatePose(
           rState.x,
@@ -164,7 +275,6 @@ function bootstrap(): void {
           wheelSpinAngle
         );
 
-        // Mount astronaut on driver seat with full 3D transform (position + quaternion pitch/roll/yaw)
         const seatPos = new THREE.Vector3();
         const seatQuat = new THREE.Quaternion();
         roverMesh.getDriverSeatTransform(seatPos, seatQuat);
@@ -172,17 +282,32 @@ function bootstrap(): void {
         astronautMesh.group.quaternion.copy(seatQuat);
         astronautMesh.setSeatedPose(true, rState.steerAngle);
 
-        // Emit ballistic dust particles from rear wheels
         if (Math.abs(rState.speed) > 0.6) {
           const fwdX = -Math.sin(rState.yaw);
           const fwdZ = -Math.cos(rState.yaw);
           const rl = rState.wheels[2];
           const rr = rState.wheels[3];
           if (rl.isGrounded) {
-            dustParticles.emitFromWheel(rl.worldX, rl.worldY - 0.1, rl.worldZ, fwdX, fwdZ, rState.speed, currentTimeSec);
+            dustParticles.emitFromWheel(
+              rl.worldX,
+              rl.worldY - 0.1,
+              rl.worldZ,
+              fwdX,
+              fwdZ,
+              rState.speed,
+              currentTimeSec
+            );
           }
           if (rr.isGrounded) {
-            dustParticles.emitFromWheel(rr.worldX, rr.worldY - 0.1, rr.worldZ, fwdX, fwdZ, rState.speed, currentTimeSec);
+            dustParticles.emitFromWheel(
+              rr.worldX,
+              rr.worldY - 0.1,
+              rr.worldZ,
+              fwdX,
+              fwdZ,
+              rState.speed,
+              currentTimeSec
+            );
           }
         }
 
@@ -190,7 +315,15 @@ function bootstrap(): void {
         terrainManager.update(rState.x, rState.z);
       } else if (gameMode === 'EVA_ASTRONAUT') {
         const charInputs = inputManager.getCharacterInputs(thirdPersonCamera.yaw);
-        character.update(charInputs, dt);
+        const cPre = character.getState();
+        const inSun = checkIsInSunlight(cPre.x, cPre.y, cPre.z);
+        const nearAirlock = habitat.canInteractAirlock(cPre.x, cPre.z);
+
+        character.update(charInputs, dt, {
+          isInSunlight: inSun,
+          isInsideShelter: nearAirlock,
+        });
+
         const cState = character.getState();
 
         astronautMesh.group.position.set(cState.x, cState.y, cState.z);
@@ -226,7 +359,7 @@ function bootstrap(): void {
 
     frameCount++;
     perfTimer += rawDelta;
-    if (perfTimer >= 0.25) {
+    if (perfTimer >= 0.2) {
       fps = frameCount / perfTimer;
       frameTimeMs = (perfTimer / frameCount) * 1000;
       frameCount = 0;
@@ -235,7 +368,10 @@ function bootstrap(): void {
       const charState = character.getState();
       const roverState = rover.getState();
       const currentGroundY = sampleLunarElevation(charState.x, charState.z);
-      const canInteract = rover.canInteract(charState.x, charState.z);
+      const canInteractRover = rover.canInteract(charState.x, charState.z);
+      const canInteractAirlock = habitat.canInteractAirlock(charState.x, charState.z);
+      const distHab = habitat.distanceToAirlock(charState.x, charState.z);
+      const distRover = Math.hypot(charState.x - roverState.x, charState.z - roverState.z);
 
       hud.update({
         x: gameMode === 'ROVER_DRIVING' ? roverState.x : charState.x,
@@ -247,11 +383,20 @@ function bootstrap(): void {
         metrics: rendererWrapper.getMetrics(),
         health: charState.health,
         isDead: charState.isDead,
+        deathReason: charState.deathReason,
         jumpApex: charState.jumpApex,
         lastImpactSpeed: charState.lastImpactSpeed,
         mode: gameMode,
         roverSpeed: roverState.speed,
-        canInteractRover: canInteract,
+        canInteractRover,
+        canInteractAirlock,
+        distanceToHab: distHab,
+        distanceToRover: distRover,
+        oxygen: charState.oxygen,
+        suitTemperature: charState.suitTemperature,
+        suitIntegrity: charState.suitIntegrity,
+        isInSunlight: charState.isInSunlight,
+        isInsideShelter: charState.isInsideShelter || gameMode === 'ROVER_DRIVING',
       });
     }
 

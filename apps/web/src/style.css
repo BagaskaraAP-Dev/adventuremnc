@@ -457,3 +457,240 @@ body, html {
   letter-spacing: 0.05em;
 }
 
+/* ==========================================================================
+   M4 — SURVIVAL HUD, VISOR FX & DEATH DIAGNOSTICS
+   ========================================================================== */
+
+/* Tactical Survival Panel */
+.hud-survival-panel {
+  min-width: 320px;
+  max-width: 380px;
+}
+
+.hud-divider {
+  height: 1px;
+  background: rgba(0, 240, 255, 0.25);
+  margin: 8px 0;
+}
+
+.hud-gauge-group {
+  margin-top: 8px;
+}
+
+.hud-gauge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.hud-gauge-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: #a0aec0;
+}
+
+.hud-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.hud-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.15s ease, background-color 0.25s ease;
+}
+
+.hud-bar-o2 {
+  background: #00f0ff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+}
+
+.hud-bar-suit {
+  background: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+/* Thermal Spectrum Bar */
+.hud-temp-spectrum-track {
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, #00b4d8 0%, #00e676 50%, #ff3b30 100%);
+  border-radius: 3px;
+  position: relative;
+}
+
+.hud-temp-indicator {
+  position: absolute;
+  top: -2px;
+  width: 4px;
+  height: 10px;
+  background: #ffffff;
+  border-radius: 1px;
+  box-shadow: 0 0 6px #ffffff;
+  transform: translateX(-50%);
+  transition: left 0.15s ease;
+}
+
+.hud-rangefinder {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #80d8ff;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Fullscreen Atmospheric Visor Overlays */
+.hud-visor-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* 1. Frost in Deep Shadow / Cold */
+.hud-visor-frost {
+  background: radial-gradient(circle, transparent 40%, rgba(180, 230, 255, 0.25) 80%, rgba(220, 245, 255, 0.65) 100%);
+  border: 14px solid rgba(200, 240, 255, 0.35);
+  box-shadow: inset 0 0 90px rgba(0, 200, 255, 0.45);
+}
+
+/* 2. Heat Radiative Glare in Direct Sun */
+.hud-visor-heat {
+  background: radial-gradient(circle, transparent 45%, rgba(255, 140, 0, 0.2) 80%, rgba(255, 60, 0, 0.45) 100%);
+  box-shadow: inset 0 0 90px rgba(255, 80, 0, 0.45);
+}
+
+/* 3. Hypoxia / Suffocation Blackout Vignette */
+.hud-visor-suffocation {
+  background: radial-gradient(circle, transparent 15%, rgba(0, 0, 0, 0.75) 65%, rgba(0, 0, 0, 0.98) 100%);
+  animation: suffocatePulse 1.8s infinite ease-in-out;
+}
+
+@keyframes suffocatePulse {
+  0%, 100% { transform: scale(1.0); }
+  50% { transform: scale(1.03); }
+}
+
+/* 4. Cracked Helmet Visor */
+.hud-visor-crack {
+  background: radial-gradient(circle, transparent 50%, rgba(255, 0, 0, 0.15) 85%, rgba(255, 0, 0, 0.3) 100%);
+  box-shadow: inset 0 0 80px rgba(255, 0, 0, 0.4);
+}
+
+/* Floating Autosave Toast */
+.hud-toast-banner {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 18, 28, 0.95);
+  border: 1px solid #00f0ff;
+  box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+  color: #00f0ff;
+  font-family: 'SF Mono', Consolas, 'Roboto Mono', Monaco, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 10px 24px;
+  border-radius: 4px;
+  z-index: 9995;
+  pointer-events: none;
+  animation: ctfFadeIn 0.2s ease-out;
+}
+
+/* Distinct Death Overlay Modal */
+.hud-death-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: ctfFadeIn 0.3s ease-out;
+}
+
+.hud-death-card {
+  background: linear-gradient(135deg, rgba(28, 10, 10, 0.98), rgba(16, 5, 5, 0.98));
+  border: 1px solid #ff3333;
+  box-shadow: 0 0 45px rgba(255, 50, 50, 0.5), inset 0 0 25px rgba(255, 50, 50, 0.1);
+  border-radius: 8px;
+  padding: 36px 42px;
+  max-width: 620px;
+  width: 90%;
+  text-align: center;
+  color: #ffffff;
+  font-family: 'SF Mono', Consolas, 'Roboto Mono', Monaco, monospace;
+  box-sizing: border-box;
+}
+
+.hud-death-badge {
+  display: inline-block;
+  background: rgba(255, 50, 50, 0.2);
+  border: 1px solid #ff3333;
+  color: #ff5555;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 4px 16px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+
+.hud-death-title {
+  margin: 0 0 12px 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ff3333;
+  text-shadow: 0 0 16px rgba(255, 50, 50, 0.7);
+}
+
+.hud-death-desc {
+  margin: 0 0 26px 0;
+  font-size: 13px;
+  color: #e2e8f0;
+  line-height: 1.6;
+}
+
+.hud-death-action {
+  display: flex;
+  justify-content: center;
+}
+
+.hud-btn-respawn {
+  background: #ff3333;
+  color: #ffffff;
+  border: none;
+  padding: 12px 28px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hud-btn-respawn:hover {
+  background: #ff5555;
+  box-shadow: 0 0 18px rgba(255, 50, 50, 0.8);
+}
+
+

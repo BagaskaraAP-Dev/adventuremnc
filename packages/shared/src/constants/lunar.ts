@@ -87,3 +87,34 @@ export const ROVER_TRACK_WIDTH = 1.8;
 
 /** Sudut belok kemudi maksimum roda depan (radian) (~30 derajat) */
 export const ROVER_MAX_STEER_RAD = 0.52;
+
+/** Kapasitas oksigen nominal suit (persen) */
+export const SUIT_O2_MAX = 100.0;
+
+/** Laju konsumsi O2 dasar saat EVA (% / detik) */
+export const SUIT_O2_BASE_CONSUMPTION = 0.28;
+
+/** Multiplier konsumsi O2 saat sprint loping */
+export const SUIT_O2_SPRINT_MULTIPLIER = 2.2;
+
+/** Suhu nominal nyaman internal suit (°C) */
+export const SUIT_TEMP_NOMINAL = 21.0;
+
+/** Batas suhu dingin sebelum menderita hypothermia (°C) */
+export const SUIT_TEMP_FREEZE_THRESHOLD = 5.0;
+
+/** Batas suhu panas sebelum menderita hyperthermia (°C) */
+export const SUIT_TEMP_OVERHEAT_THRESHOLD = 45.0;
+
+/** Laju pendinginan di dalam bayangan dingin (°C / detik) */
+export const SUIT_COOLING_RATE_SHADOW = 0.65;
+
+/** Laju pemanasan di bawah sinar matahari langsung (°C / detik) */
+export const SUIT_HEATING_RATE_SUN = 0.55;
+
+/** Laju regulasi HVAC baterai suit internal (°C / detik) */
+export const SUIT_HVAC_REGULATION_RATE = 0.35;
+
+/** Radius interaksi airlock habitat pangkalan (m) */
+export const HABITAT_AIRLOCK_RADIUS = 4.8;
+
