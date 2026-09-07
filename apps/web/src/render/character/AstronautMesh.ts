@@ -146,16 +146,16 @@ export function createAstronautMesh(): AstronautMeshInstance {
       bodyGroup.rotation.set(-0.08, 0, 0); // Comfortable recline against seat backrest
 
       // Thighs extend forward horizontally over cushion
-      leftHip.rotation.set(1.48, 0, 0);
-      rightHip.rotation.set(1.48, 0, 0);
+      leftHip.rotation.set(-1.48, 0, 0);
+      rightHip.rotation.set(-1.48, 0, 0);
 
       // Knees bend down vertically to rest boots squarely on the cockpit floor
-      leftKnee.rotation.set(-1.45, 0, 0);
-      rightKnee.rotation.set(-1.45, 0, 0);
+      leftKnee.rotation.set(1.45, 0, 0);
+      rightKnee.rotation.set(1.45, 0, 0);
 
       // Hands grip central T-handle steering console
-      leftArm.rotation.set(0.72, 0, -0.22);
-      rightArm.rotation.set(0.72, 0, 0.22);
+      leftArm.rotation.set(-0.72, 0, -0.22);
+      rightArm.rotation.set(-0.72, 0, 0.22);
     } else {
       bodyGroup.position.set(0, 0, 0);
       bodyGroup.rotation.set(0, 0, 0);

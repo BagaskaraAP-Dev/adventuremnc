@@ -179,7 +179,7 @@ function bootstrap(): void {
           }
         }
 
-        thirdPersonCamera.updateRover(rState.x, rState.y, rState.z, rState.yaw, dt);
+        thirdPersonCamera.updateRover(rState.x, rState.y, rState.z, rState.yaw, dt, rState.speed);
         terrainManager.update(rState.x, rState.z);
       } else if (gameMode === 'EVA_ASTRONAUT') {
         const charInputs = inputManager.getCharacterInputs(thirdPersonCamera.yaw);

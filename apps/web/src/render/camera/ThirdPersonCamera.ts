@@ -82,13 +82,16 @@ export class ThirdPersonCamera {
     targetY: number,
     targetZ: number,
     roverYaw: number,
-    dt: number
+    dt: number,
+    speed: number
   ): void {
-    // Smooth chase-camera tracking behind rover heading
-    let diff = roverYaw - this.yaw;
-    while (diff < -Math.PI) diff += Math.PI * 2;
-    while (diff > Math.PI) diff -= Math.PI * 2;
-    this.yaw += diff * Math.min(1.0, dt * 4.0);
+    // Smooth chase-camera tracking behind rover heading only when moving
+    if (Math.abs(speed) > 0.5) {
+      let diff = roverYaw - this.yaw;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      this.yaw += diff * Math.min(1.0, dt * 3.0);
+    }
 
     // Keep pitch comfortable for vehicle driving
     this.pitch = Math.max(0.1, Math.min(0.55, this.pitch));
