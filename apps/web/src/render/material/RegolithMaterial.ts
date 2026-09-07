@@ -1,18 +1,20 @@
 import * as THREE from 'three';
-import { REGOLITH_ALBEDO } from '@adventuremnc/shared';
+import { createRegolithTextures } from './RegolithTextures';
 
 /**
  * Creates lunar regolith PBR material with custom opposition effect (Heiligenschein).
  * Regolith albedo is low (~0.12), roughness high (~0.94).
  */
 export function createRegolithMaterial(sunLight: THREE.DirectionalLight): THREE.MeshStandardMaterial {
-  // Linear RGB albedo corresponding to 0.12 bond albedo
-  const baseColor = new THREE.Color(REGOLITH_ALBEDO * 0.95, REGOLITH_ALBEDO * 0.92, REGOLITH_ALBEDO * 0.88);
+  const textures = createRegolithTextures();
 
   const material = new THREE.MeshStandardMaterial({
-    color: baseColor,
-    roughness: 0.94,
-    metalness: 0.02,
+    map: textures.albedoMap,
+    normalMap: textures.normalMap,
+    normalScale: new THREE.Vector2(2.5, 2.5),
+    roughnessMap: textures.roughnessMap,
+    roughness: 0.95,
+    metalness: 0.04,
     flatShading: false,
   });
 

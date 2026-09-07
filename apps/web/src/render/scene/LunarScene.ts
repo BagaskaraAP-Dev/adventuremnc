@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { EARTH_ANGULAR_DIAMETER_DEG } from '@adventuremnc/shared';
+import { createRealisticEarth } from './EarthMesh';
 
 export interface LunarSceneElements {
   scene: THREE.Scene;
   sunLight: THREE.DirectionalLight;
-  earthMesh: THREE.Mesh;
+  earthMesh: THREE.Object3D;
   updateSunPosition: (timeSeconds: number) => void;
+  update: (dt: number) => void;
 }
 
 export function createLunarScene(): LunarSceneElements {
@@ -35,25 +37,20 @@ export function createLunarScene(): LunarSceneElements {
   const angularRadiusRad = (EARTH_ANGULAR_DIAMETER_DEG * Math.PI) / 360;
   const earthRadius = earthDist * Math.tan(angularRadiusRad);
 
-  const earthGeo = new THREE.SphereGeometry(earthRadius, 32, 32);
-  const earthMat = new THREE.MeshBasicMaterial({
-    color: 0x3d7ecc,
-  });
-
-  const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  const earthSystem = createRealisticEarth(sunLight, earthRadius);
   // Position Earth at azimuth 45°, elevation 11°
   const elevRad = (11 * Math.PI) / 180;
   const azimRad = (45 * Math.PI) / 180;
-  earthMesh.position.set(
+  earthSystem.group.position.set(
     earthDist * Math.cos(elevRad) * Math.sin(azimRad),
     earthDist * Math.sin(elevRad),
     earthDist * Math.cos(elevRad) * Math.cos(azimRad)
   );
-  scene.add(earthMesh);
+  scene.add(earthSystem.group);
 
   // 3. Earthshine light: subtle directional fill from Earth direction
   const earthshineLight = new THREE.DirectionalLight(0x7da4d0, 0.05);
-  earthshineLight.position.copy(earthMesh.position);
+  earthshineLight.position.copy(earthSystem.group.position);
   earthshineLight.target.position.set(0, 0, 0);
   scene.add(earthshineLight);
   scene.add(earthshineLight.target);
@@ -91,10 +88,15 @@ export function createLunarScene(): LunarSceneElements {
 
   updateSunPosition(0.4);
 
+  const update = (dt: number) => {
+    earthSystem.update(dt);
+  };
+
   return {
     scene,
     sunLight,
-    earthMesh,
+    earthMesh: earthSystem.group,
     updateSunPosition,
+    update,
   };
 }

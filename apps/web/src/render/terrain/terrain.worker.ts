@@ -54,8 +54,8 @@ self.onmessage = (e: MessageEvent<ChunkBuildRequest>) => {
       normals[vIdx + 1] = ny;
       normals[vIdx + 2] = nz;
 
-      uvs[uvIdx] = fracX;
-      uvs[uvIdx + 1] = fracZ;
+      uvs[uvIdx] = x * 0.125;
+      uvs[uvIdx + 1] = z * 0.125;
 
       vIdx += 3;
       uvIdx += 2;

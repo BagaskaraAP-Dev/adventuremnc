@@ -201,6 +201,7 @@ function bootstrap(): void {
       }
 
       dustParticles.update(currentTimeSec);
+      lunarScene.update(dt);
     },
     render: () => {
       if (typeof regolithMat.userData.updateSun === 'function') {
