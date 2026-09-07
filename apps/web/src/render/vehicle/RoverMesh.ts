@@ -121,11 +121,35 @@ export function createRoverMesh(): RoverMeshInstance {
   columnMesh.rotation.x = -0.6;
   bodyGroup.add(columnMesh);
 
+  // Steering Wheel Assembly (In front of Driver, rotates with steering input)
+  const steeringWheelGroup = new THREE.Group();
+  steeringWheelGroup.position.set(-0.35, 0.82, -0.25);
+  steeringWheelGroup.rotation.x = -0.6; // Tilted towards driver
+  bodyGroup.add(steeringWheelGroup);
+
   const wheelGeo = new THREE.TorusGeometry(0.16, 0.025, 12, 24);
   const wheelMesh = new THREE.Mesh(wheelGeo, frameMaterial);
-  wheelMesh.position.set(-0.35, 0.82, -0.25); // Positioned for hands
-  wheelMesh.rotation.x = -0.6; // Tilted towards driver
-  bodyGroup.add(wheelMesh);
+  wheelMesh.castShadow = true;
+  steeringWheelGroup.add(wheelMesh);
+
+  // Center hub & spokes for realistic steering wheel look
+  const hubGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.03, 12);
+  const hubMesh = new THREE.Mesh(hubGeo, chassisMaterial);
+  hubMesh.rotation.x = Math.PI / 2;
+  steeringWheelGroup.add(hubMesh);
+
+  const spokeH = new THREE.Mesh(
+    new THREE.BoxGeometry(0.28, 0.025, 0.015),
+    frameMaterial
+  );
+  steeringWheelGroup.add(spokeH);
+
+  const spokeV = new THREE.Mesh(
+    new THREE.BoxGeometry(0.025, 0.14, 0.015),
+    frameMaterial
+  );
+  spokeV.position.y = -0.06;
+  steeringWheelGroup.add(spokeV);
 
   // Driver seat mount anchor: local point where the astronaut's butt sits
   const driverSeatMount = new THREE.Group();
@@ -267,9 +291,10 @@ export function createRoverMesh(): RoverMeshInstance {
     bodyGroup.rotation.x = pitch;
     bodyGroup.rotation.z = roll;
 
-    // Steering on front wheels
+    // Steering on front wheels & cockpit steering wheel
     fl.wheelPivot.rotation.y = steerAngle;
     fr.wheelPivot.rotation.y = steerAngle;
+    steeringWheelGroup.rotation.z = -steerAngle * 2.0;
 
     // Wheel spin rotation
     fl.wheelSpinGroup.rotation.x = wheelSpin;

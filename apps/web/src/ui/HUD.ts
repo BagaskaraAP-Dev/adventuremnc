@@ -93,8 +93,7 @@ export class HUD {
       this.footerElement.innerHTML = `
         <span class="hud-key">W / S</span> ACCEL / BRAKE • 
         <span class="hud-key">A / D</span> STEER • 
-        <span class="hud-key">SPACE</span> HANDBRAKE • 
-        <span class="hud-key">E</span> EXIT ROVER
+        <span class="hud-key">SPACE</span> HANDBRAKE
       `;
     } else if (data.mode === 'EVA_ASTRONAUT') {
       this.suitElement.textContent = `SUIT: ${healthClamped}% | MODE: EVA BOUNDING`;

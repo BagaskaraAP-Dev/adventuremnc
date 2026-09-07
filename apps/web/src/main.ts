@@ -164,6 +164,7 @@ function bootstrap(): void {
         roverMesh.getDriverSeatTransform(seatPos, seatQuat);
         astronautMesh.group.position.copy(seatPos);
         astronautMesh.group.quaternion.copy(seatQuat);
+        astronautMesh.setSeatedPose(true, rState.steerAngle);
 
         // Emit ballistic dust particles from rear wheels
         if (Math.abs(rState.speed) > 0.6) {

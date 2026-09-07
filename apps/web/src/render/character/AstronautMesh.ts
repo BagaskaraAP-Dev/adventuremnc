@@ -3,7 +3,7 @@ import * as THREE from 'three';
 export interface AstronautMeshInstance {
   group: THREE.Group;
   updateAnimation: (lopingCycle: number, isGrounded: boolean, vy: number, speed: number) => void;
-  setSeatedPose: (seated: boolean) => void;
+  setSeatedPose: (seated: boolean, steerAngle?: number) => void;
 }
 
 /**
@@ -119,26 +119,59 @@ export function createAstronautMesh(): AstronautMeshInstance {
   rightHip.add(rightKnee);
   bodyGroup.add(rightHip);
 
-  // Arms
-  const armGeo = new THREE.CylinderGeometry(0.1, 0.09, 0.55, 12);
-  const leftArm = new THREE.Group();
-  leftArm.position.set(-0.42, 1.32, 0);
-  const leftArmMesh = new THREE.Mesh(armGeo, suitMaterial);
-  leftArmMesh.position.y = -0.27;
-  leftArmMesh.castShadow = true;
-  leftArm.add(leftArmMesh);
-  bodyGroup.add(leftArm);
+  // 5. Articulated Arms (Shoulder -> Upper Arm -> Elbow -> Forearm -> Glove)
+  const upperArmGeo = new THREE.CylinderGeometry(0.10, 0.09, 0.28, 12);
+  const forearmGeo = new THREE.CylinderGeometry(0.088, 0.078, 0.26, 12);
+  const gloveGeo = new THREE.BoxGeometry(0.11, 0.10, 0.14);
 
-  const rightArm = new THREE.Group();
-  rightArm.position.set(0.42, 1.32, 0);
-  const rightArmMesh = new THREE.Mesh(armGeo, suitMaterial);
-  rightArmMesh.position.y = -0.27;
-  rightArmMesh.castShadow = true;
-  rightArm.add(rightArmMesh);
-  bodyGroup.add(rightArm);
+  // Left Arm
+  const leftShoulder = new THREE.Group();
+  leftShoulder.position.set(-0.36, 1.30, 0);
+  const leftUpperArmMesh = new THREE.Mesh(upperArmGeo, suitMaterial);
+  leftUpperArmMesh.position.y = -0.14;
+  leftUpperArmMesh.castShadow = true;
+  leftShoulder.add(leftUpperArmMesh);
+
+  const leftElbow = new THREE.Group();
+  leftElbow.position.set(0, -0.28, 0);
+  const leftForearmMesh = new THREE.Mesh(forearmGeo, suitMaterial);
+  leftForearmMesh.position.y = -0.13;
+  leftForearmMesh.castShadow = true;
+  leftElbow.add(leftForearmMesh);
+
+  const leftGlove = new THREE.Mesh(gloveGeo, jointMaterial);
+  leftGlove.position.set(0, -0.27, 0.02);
+  leftGlove.castShadow = true;
+  leftElbow.add(leftGlove);
+
+  leftShoulder.add(leftElbow);
+  bodyGroup.add(leftShoulder);
+
+  // Right Arm
+  const rightShoulder = new THREE.Group();
+  rightShoulder.position.set(0.36, 1.30, 0);
+  const rightUpperArmMesh = new THREE.Mesh(upperArmGeo, suitMaterial);
+  rightUpperArmMesh.position.y = -0.14;
+  rightUpperArmMesh.castShadow = true;
+  rightShoulder.add(rightUpperArmMesh);
+
+  const rightElbow = new THREE.Group();
+  rightElbow.position.set(0, -0.28, 0);
+  const rightForearmMesh = new THREE.Mesh(forearmGeo, suitMaterial);
+  rightForearmMesh.position.y = -0.13;
+  rightForearmMesh.castShadow = true;
+  rightElbow.add(rightForearmMesh);
+
+  const rightGlove = new THREE.Mesh(gloveGeo, jointMaterial);
+  rightGlove.position.set(0, -0.27, 0.02);
+  rightGlove.castShadow = true;
+  rightElbow.add(rightGlove);
+
+  rightShoulder.add(rightElbow);
+  bodyGroup.add(rightShoulder);
 
   let isSeated = false;
-  const setSeatedPose = (seated: boolean) => {
+  const setSeatedPose = (seated: boolean, steerAngle: number = 0) => {
     isSeated = seated;
     if (seated) {
       // Lower body group so pelvis/butt sits directly on the bucket cushion
@@ -149,13 +182,16 @@ export function createAstronautMesh(): AstronautMeshInstance {
       leftHip.rotation.set(-1.57, 0, 0);
       rightHip.rotation.set(-1.57, 0, 0);
 
-      // Knees bend exactly 90 degrees straight down for a classic sitting posture
+      // Knees bend exactly 90 degrees straight down for classic seated posture
       leftKnee.rotation.set(1.57, 0, 0);
       rightKnee.rotation.set(1.57, 0, 0);
 
-      // Both hands point forward to grip the steering wheel
-      leftArm.rotation.set(-0.90, 0, -0.05);
-      rightArm.rotation.set(-0.90, 0, 0.05);
+      // Articulated arms reach forward and inward, gripping the steering wheel naturally
+      const turn = steerAngle * 0.18;
+      leftShoulder.rotation.set(-0.50 + turn, 1.00, turn * 0.3);
+      leftElbow.rotation.set(-1.30 - turn * 0.2, 0, 0);
+      rightShoulder.rotation.set(-0.50 - turn, -1.00, turn * 0.3);
+      rightElbow.rotation.set(-1.30 + turn * 0.2, 0, 0);
     } else {
       bodyGroup.position.set(0, 0, 0);
       bodyGroup.rotation.set(0, 0, 0);
@@ -163,76 +199,74 @@ export function createAstronautMesh(): AstronautMeshInstance {
       rightHip.rotation.set(0, 0, 0);
       leftKnee.rotation.set(0, 0, 0);
       rightKnee.rotation.set(0, 0, 0);
-      leftArm.rotation.set(0, 0, 0);
-      rightArm.rotation.set(0, 0, 0);
+      leftShoulder.rotation.set(0, 0, 0);
+      leftElbow.rotation.set(0, 0, 0);
+      rightShoulder.rotation.set(0, 0, 0);
+      rightElbow.rotation.set(0, 0, 0);
     }
   };
 
-  const updateAnimation = (lopingCycle: number, isGrounded: boolean, vy: number, speed: number) => {
+  const updateAnimation = (lopingCycle: number, isGrounded: boolean, _vy: number, speed: number) => {
     if (isSeated) return;
 
     if (isGrounded) {
       if (speed > 0.1) {
-        // Cool swagger run
-        const runCycle = lopingCycle * 1.5; // faster cycle
+        // Cool dynamic swagger run / low-gravity loping
+        const runCycle = lopingCycle * 1.5;
         const bob = Math.abs(Math.sin(runCycle)) * 0.08;
         bodyGroup.position.y = bob;
 
-        const legAngle = Math.sin(runCycle) * 0.65;
+        const legAngle = Math.sin(runCycle) * 0.60;
         
         // Legs swinging
-        leftHip.rotation.x = -legAngle;
-        rightHip.rotation.x = legAngle;
+        leftHip.rotation.set(-legAngle, 0, 0);
+        rightHip.rotation.set(legAngle, 0, 0);
 
-        // Bending knee naturally when swinging forward (negative hip X)
-        leftKnee.rotation.x = leftHip.rotation.x < 0 ? -leftHip.rotation.x * 1.2 : 0;
-        rightKnee.rotation.x = rightHip.rotation.x < 0 ? -rightHip.rotation.x * 1.2 : 0;
+        // Bending knee naturally when swinging forward
+        leftKnee.rotation.x = leftHip.rotation.x < 0 ? -leftHip.rotation.x * 1.3 : 0.05;
+        rightKnee.rotation.x = rightHip.rotation.x < 0 ? -rightHip.rotation.x * 1.3 : 0.05;
 
-        // Cool arm swing
-        leftArm.rotation.x = legAngle * 0.9;
-        rightArm.rotation.x = -legAngle * 0.9;
-        leftArm.rotation.z = 0.15;
-        rightArm.rotation.z = -0.15;
+        // Natural arm swing with articulated elbows
+        leftShoulder.rotation.set(legAngle * 0.8, 0, 0.12);
+        rightShoulder.rotation.set(-legAngle * 0.8, 0, -0.12);
+        leftElbow.rotation.set(-0.45 - Math.max(0, legAngle * 0.3), 0, 0);
+        rightElbow.rotation.set(-0.45 - Math.max(0, -legAngle * 0.3), 0, 0);
 
-        // Slight forward lean for momentum
-        bodyGroup.rotation.x = 0.15;
+        // Athletic forward lean for momentum
+        bodyGroup.rotation.x = 0.10;
         
         // Reset hip spread from idle
         leftHip.rotation.z = 0;
         rightHip.rotation.z = 0;
       } else {
-        // Cool Idle Stance (Upright and relaxed)
-        const breath = Math.sin(performance.now() * 0.002) * 0.015;
+        // Upright, heroic relaxed stance
+        const breath = Math.sin(performance.now() * 0.002) * 0.012;
         bodyGroup.position.y = breath;
         bodyGroup.rotation.x = 0; // Perfectly upright
         
         // Relaxed leg stance
-        leftHip.rotation.z = -0.1;
-        rightHip.rotation.z = 0.1;
-        leftHip.rotation.x = 0;
-        rightHip.rotation.x = 0;
-        leftKnee.rotation.x = 0.05;
-        rightKnee.rotation.x = 0.05;
+        leftHip.rotation.set(0, 0, -0.08);
+        rightHip.rotation.set(0, 0, 0.08);
+        leftKnee.rotation.set(0.04, 0, 0);
+        rightKnee.rotation.set(0.04, 0, 0);
         
-        // Relaxed arms
-        leftArm.rotation.x = -0.1;
-        rightArm.rotation.x = -0.1;
-        leftArm.rotation.z = 0.15;
-        rightArm.rotation.z = -0.15;
+        // Relaxed arms with natural elbow bend
+        leftShoulder.rotation.set(0.02, 0, 0.12);
+        rightShoulder.rotation.set(0.02, 0, -0.12);
+        leftElbow.rotation.set(-0.22, 0, 0);
+        rightElbow.rotation.set(-0.22, 0, 0);
       }
     } else {
-      // Airborne (jumping/falling) - Action pose
-      bodyGroup.rotation.x = 0.1;
-      leftHip.rotation.z = 0;
-      rightHip.rotation.z = 0;
-      leftHip.rotation.x = -0.4;
-      rightHip.rotation.x = 0.2;
-      leftKnee.rotation.x = 0.5;
-      rightKnee.rotation.x = 0.1;
-      leftArm.rotation.x = -0.6;
-      rightArm.rotation.x = 0.5;
-      leftArm.rotation.z = 0.3;
-      rightArm.rotation.z = -0.3;
+      // Airborne (jumping/falling in 1/6g) - Action pose
+      bodyGroup.rotation.x = 0.08;
+      leftHip.rotation.set(-0.35, 0, -0.05);
+      rightHip.rotation.set(0.15, 0, 0.05);
+      leftKnee.rotation.set(0.45, 0, 0);
+      rightKnee.rotation.set(0.20, 0, 0);
+      leftShoulder.rotation.set(-0.40, 0, 0.22);
+      rightShoulder.rotation.set(0.30, 0, -0.22);
+      leftElbow.rotation.set(-0.50, 0, 0);
+      rightElbow.rotation.set(-0.35, 0, 0);
     }
   };
 
