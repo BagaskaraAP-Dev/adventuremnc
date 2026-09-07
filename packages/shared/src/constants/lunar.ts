@@ -63,3 +63,27 @@ export const EVA_FALL_DAMAGE_COEFF = 2.5;
 
 /** Air control factor di ruang hampa (tanpa gaya dorong luar) */
 export const EVA_AIR_CONTROL = 0.0;
+
+/** Massa kering lunar mining rover (kg) */
+export const ROVER_MASS = 650;
+
+/** Kecepatan maksimum nominal rover (m/s) (~30.6 km/h) */
+export const ROVER_MAX_SPEED = 8.5;
+
+/** Akselerasi motor traksi rendah di regolith (m/s²) */
+export const ROVER_MOTOR_ACCEL = 3.2;
+
+/** Deselerasi pengereman traksi rendah di regolith (m/s²) */
+export const ROVER_BRAKE_DECEL = 2.8;
+
+/** Radius interaksi masuk/keluar kendaraan (m) */
+export const ROVER_INTERACT_RADIUS = 3.2;
+
+/** Wheelbase rover (jarak sumbu roda depan ke belakang) (m) */
+export const ROVER_WHEELBASE = 2.4;
+
+/** Track width rover (jarak antar roda kiri dan kanan) (m) */
+export const ROVER_TRACK_WIDTH = 1.8;
+
+/** Sudut belok kemudi maksimum roda depan (radian) (~30 derajat) */
+export const ROVER_MAX_STEER_RAD = 0.52;

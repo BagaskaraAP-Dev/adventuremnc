@@ -13,7 +13,9 @@ export interface HudTelemetryData {
   isDead: boolean;
   jumpApex: number;
   lastImpactSpeed: number;
-  mode: 'EVA_ASTRONAUT' | 'FLY_CAMERA';
+  mode: 'EVA_ASTRONAUT' | 'ROVER_DRIVING' | 'FLY_CAMERA';
+  roverSpeed?: number;
+  canInteractRover?: boolean;
 }
 
 export class HUD {
@@ -25,6 +27,8 @@ export class HUD {
   private suitElement: HTMLElement;
   private dynamicsElement: HTMLElement;
   private breachElement: HTMLElement;
+  private promptElement: HTMLElement;
+  private footerElement: HTMLElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -39,6 +43,7 @@ export class HUD {
         <div class="hud-row hud-dim" id="hud-dynamics">APEX: 0.00m | IMPACT: 0.0 m/s</div>
       </div>
       <div class="hud-crosshair">+</div>
+      <div id="hud-prompt" class="hud-action-prompt" style="display: none;">[E] ENTER ROVER</div>
       <div id="hud-breach" class="hud-breach-alert" style="display: none;">
         <div class="breach-title">CRITICAL IMPACT — SUIT BREACH DETECTED</div>
         <div class="breach-sub">PRESS [R] TO DEPLOY BACKUP CONTRACTOR</div>
@@ -48,7 +53,7 @@ export class HUD {
         <div class="hud-row" id="hud-perf">FPS: -- | FT: -- ms</div>
         <div class="hud-row hud-dim" id="hud-mesh">DRAWS: -- | TRIS: --</div>
       </div>
-      <div class="hud-footer">
+      <div class="hud-footer" id="hud-footer">
         <span class="hud-key">CLICK TO LOOK</span> • 
         <span class="hud-key">W A S D</span> LOPING MOVE • 
         <span class="hud-key">SPACE</span> 1/6G HOP • 
@@ -66,6 +71,8 @@ export class HUD {
     this.suitElement = document.getElementById('hud-suit')!;
     this.dynamicsElement = document.getElementById('hud-dynamics')!;
     this.breachElement = document.getElementById('hud-breach')!;
+    this.promptElement = document.getElementById('hud-prompt')!;
+    this.footerElement = document.getElementById('hud-footer')!;
   }
 
   public update(data: HudTelemetryData): void {
@@ -78,8 +85,44 @@ export class HUD {
     this.perfElement.textContent = `FPS: ${data.fps.toFixed(0)} | FT: ${data.frameTimeMs.toFixed(1)} ms`;
 
     const healthClamped = Math.max(0, Math.round(data.health));
-    this.suitElement.textContent = `SUIT: ${healthClamped}% | MODE: ${data.mode === 'EVA_ASTRONAUT' ? 'EVA BOUNDING' : 'FREE FLY'}`;
-    this.dynamicsElement.textContent = `APEX: ${data.jumpApex.toFixed(2)}m | LAST IMPACT: ${data.lastImpactSpeed.toFixed(1)} m/s`;
+    if (data.mode === 'ROVER_DRIVING') {
+      const speedKmH = ((data.roverSpeed || 0) * 3.6).toFixed(1);
+      this.suitElement.textContent = `SUIT: ${healthClamped}% | ROVER SPEED: ${speedKmH} km/h`;
+      this.dynamicsElement.textContent = `TRACTION: LOW REGOLITH | BRAKE: EXTENDED`;
+      this.promptElement.style.display = 'block';
+      this.promptElement.textContent = '[E] EXIT ROVER';
+      this.footerElement.innerHTML = `
+        <span class="hud-key">W / S</span> ACCEL / BRAKE • 
+        <span class="hud-key">A / D</span> STEER • 
+        <span class="hud-key">SPACE</span> HANDBRAKE • 
+        <span class="hud-key">E</span> EXIT ROVER
+      `;
+    } else if (data.mode === 'EVA_ASTRONAUT') {
+      this.suitElement.textContent = `SUIT: ${healthClamped}% | MODE: EVA BOUNDING`;
+      this.dynamicsElement.textContent = `APEX: ${data.jumpApex.toFixed(2)}m | LAST IMPACT: ${data.lastImpactSpeed.toFixed(1)} m/s`;
+      if (data.canInteractRover) {
+        this.promptElement.style.display = 'block';
+        this.promptElement.textContent = '[E] ENTER MINING ROVER';
+      } else {
+        this.promptElement.style.display = 'none';
+      }
+      this.footerElement.innerHTML = `
+        <span class="hud-key">CLICK TO LOOK</span> • 
+        <span class="hud-key">W A S D</span> LOPING MOVE • 
+        <span class="hud-key">SPACE</span> 1/6G HOP • 
+        <span class="hud-key">SHIFT</span> SPRINT • 
+        <span class="hud-key">V</span> FLY CAM
+      `;
+    } else {
+      this.suitElement.textContent = `SUIT: ${healthClamped}% | MODE: FREE FLY CAMERA`;
+      this.promptElement.style.display = 'none';
+      this.footerElement.innerHTML = `
+        <span class="hud-key">W A S D</span> FLY • 
+        <span class="hud-key">SPACE / C</span> ASCEND / DESCEND • 
+        <span class="hud-key">SHIFT</span> TURBO • 
+        <span class="hud-key">V</span> EXIT FLY
+      `;
+    }
 
     if (data.isDead) {
       this.breachElement.style.display = 'block';

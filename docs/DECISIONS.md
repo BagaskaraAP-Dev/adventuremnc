@@ -37,7 +37,13 @@
 ### 6. Vacuum Air Control & Impact Velocity Damage
 - Rationale: In space vacuum, an astronaut in ballistic flight cannot alter their trajectory without external propulsive thrust. Air control is enforced strictly at 0.0. Furthermore, without atmospheric drag to cap falling speed at a terminal velocity, fall damage is calculated directly from the square of impact velocity exceeding the suit's kinetic threshold (`EVA_SAFE_IMPACT_VELOCITY = 8.5` m/s).
 
-## Known Gaps (M2)
-- Raycast vehicle physics and mining rover integration (scheduled for M3).
-- Ballistic regolith dust rooster-tail GPU particle system (scheduled for M3).
+### 7. Raycast Vehicle Suspension & Regolith Traction Dynamics
+- Rationale: Due to the 1/6 gravity field, the normal contact force on a 650 kg rover is only ~1,056 N (compared to 6,375 N on Earth). This drastically reduces maximum tire traction. Our rover dynamics model implements decoupled 4-wheel raycasting with bicycle-kinematic steering, spring-damper suspension, and capped braking deceleration (`ROVER_BRAKE_DECEL = 2.8` m/s²). Stopping from top speed (8.5 m/s) requires ~12.9 meters, forcing deliberate vehicle handling rather than arcade-style instant stops.
+
+### 8. GPU Ballistic Regolith Particles (Zero-Atmosphere Physics)
+- Rationale: In atmospheric environments, tire dust creates billowing turbulent smoke clouds with air drag. On the Moon, vacuum dictates that every single ejected dust grain follows a purely ballistic parabolic trajectory $\mathbf{P}(t) = \mathbf{p}_0 + \mathbf{v}_0 t + \frac{1}{2}\mathbf{g} t^2$ without drag or turbulence. This is evaluated entirely in the GPU vertex shader with lifetime $T_{flight} = 2 v_{0y} / g$, guaranteeing that 100% of particles land back onto the ground.
+
+## Known Gaps (M3)
 - Life support survival systems (O2 depletion & PSR cryogenic freezing) (scheduled for M4).
+- Hab airlock interior zones as refill/save stations (scheduled for M4).
+- Mission runner and contract board (scheduled for M6).

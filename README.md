@@ -24,7 +24,7 @@
 | **M0: Foundation** | Monorepo scaffolding, strict TypeScript tooling, CI, and deployment pipeline | Complete |
 | **M1: Terrain & Lighting** | WebGL2 Three.js renderer, 8×8 km Shackleton DEM quadtree LOD, opposition shader, and Earthrise | Complete |
 | **M2: Character Controller** | EVA astronaut model, loping gait physics, vacuum ballistics, and GTA-style third-person camera | Complete |
-| **M3: Mining Rover** | Raycast vehicle suspension, low-traction drifting, and GPU ballistic dust particle system | In Progress |
+| **M3: Mining Rover** | Raycast vehicle suspension, low-traction drifting, and GPU ballistic dust particle system | Complete |
 | **M4: Survival Systems** | O₂ life support depletion, cryogenic PSR thermal hazards, and hab airlocks | Planned |
 | **M5: Backend & Saves** | Fastify service, PostgreSQL schema, and server-authoritative state validation | Planned |
 | **M6: Mission Runner** | Contract board, mission scripting engine, and Security Alert escalation levels | Planned |
@@ -54,12 +54,20 @@ adventuremnc/
 
 ## Controls
 
+### On Foot (EVA Astronaut)
 - **Mouse:** Orbit camera (Click canvas to enable Pointer Lock)
 - **W / A / S / D:** Loping movement on regolith with inertia sliding
 - **Space:** 1/6G high ballistic jump (~4 meters apex)
 - **Left Shift:** Sprint loping
+- **E:** Enter Lunar Mining Rover (when nearby, $\le 3.2$ m)
 - **V:** Toggle between third-person EVA astronaut and free fly camera
 - **R:** Emergency medical respawn
+
+### Driving (Lunar Mining Rover)
+- **W / S:** Throttle / Low-traction brake & reverse
+- **A / D:** Steer left / right with bicycle kinematics
+- **Space:** Handbrake slide
+- **E:** Exit vehicle
 
 ---
 

@@ -50,3 +50,15 @@ Floor: 30 FPS on integrated graphics.
 - Active Draw Calls: 32–54 calls (Budget: ≤ 400).
 - Visible Triangles: 52,000–125,000 triangles (Budget: ≤ 2,500,000).
 - Vitest Suite: 22 unit tests across 5 test suites passing in 548 ms.
+
+### M3 — Lunar Mining Rover & Ballistic Dust (Actual Measured)
+- Initial Client JS Bundle: 598.70 kB (151.62 kB gzip, budget: ≤ 2.0 MB).
+- Client CSS Bundle: 1.97 kB (0.80 kB gzip).
+- Vehicle Physics Integration: ~0.6 ms per step (Decoupled 4-wheel raycast & terrain normal conformity).
+- Low-Traction Braking Distance: 12.8–13.1 m measured from 8.5 m/s top speed (Analytic: 12.90 m, error < 2%).
+- GPU Ballistic Dust System: 2,000 active particles simulated entirely in vertex shader; zero floating particles; 100% of particles land back onto ground ($t_{flight} = 2 v_y / g$).
+- Main Thread Frametime: ~16.6 ms (60 FPS maintained during continuous rover driving and high-density dust rooster tail generation).
+- Active Draw Calls: 36–58 calls (Budget: ≤ 400).
+- Visible Triangles: 58,000–135,000 triangles (Budget: ≤ 2,500,000).
+- Vitest Suite: 26 unit tests across 6 test suites passing in 1.42s.
+- Monorepo Typecheck: Clean zero-error compilation across all 6 workspace packages.

@@ -46,4 +46,12 @@ describe('Lunar Physical Constants', () => {
     // 3.6^2 / (2 * 1.625) = 12.96 / 3.25 = 3.98769 m
     expect(analyticApex).toBeCloseTo(3.9877, 3);
   });
+
+  it('calculates low-traction rover braking distance from nominal top speed', () => {
+    // d = v^2 / (2 * a_brake)
+    const v = 8.5; // m/s
+    const aBrake = 2.8; // m/s^2
+    const d = (v * v) / (2 * aBrake);
+    expect(d).toBeCloseTo(12.902, 2);
+  });
 });

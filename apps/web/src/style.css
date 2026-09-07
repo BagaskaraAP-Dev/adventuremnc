@@ -85,6 +85,27 @@ body, html {
   pointer-events: none;
 }
 
+.hud-action-prompt {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  background: rgba(14, 18, 22, 0.85);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: 2px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.45; }
+}
+
 .hud-breach-alert {
   position: absolute;
   top: 30%;

@@ -4,6 +4,7 @@ export class InputManager {
   private keys = new Set<string>();
   public onToggleCameraMode?: () => void;
   public onRespawn?: () => void;
+  public onInteract?: () => void;
 
   constructor() {
     window.addEventListener('keydown', (e) => {
@@ -13,6 +14,9 @@ export class InputManager {
       }
       if (e.code === 'KeyR' && this.onRespawn) {
         this.onRespawn();
+      }
+      if (e.code === 'KeyE' && this.onInteract) {
+        this.onInteract();
       }
     });
 
@@ -30,6 +34,22 @@ export class InputManager {
       sprint: this.keys.has('ShiftLeft') || this.keys.has('ShiftRight'),
       jump: this.keys.has('Space'),
       cameraYaw,
+    };
+  }
+
+  public getRoverInputs(): { throttle: number; steer: number; handbrake: boolean } {
+    let throttle = 0;
+    if (this.keys.has('KeyW') || this.keys.has('ArrowUp')) throttle += 1;
+    if (this.keys.has('KeyS') || this.keys.has('ArrowDown')) throttle -= 1;
+
+    let steer = 0;
+    if (this.keys.has('KeyA') || this.keys.has('ArrowLeft')) steer += 1;
+    if (this.keys.has('KeyD') || this.keys.has('ArrowRight')) steer -= 1;
+
+    return {
+      throttle,
+      steer,
+      handbrake: this.keys.has('Space'),
     };
   }
 
