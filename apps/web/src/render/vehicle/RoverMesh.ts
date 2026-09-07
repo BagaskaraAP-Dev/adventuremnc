@@ -108,22 +108,24 @@ export function createRoverMesh(): RoverMeshInstance {
   passBack.castShadow = true;
   bodyGroup.add(passBack);
 
-  // Center T-handle steering console & tiller stick
-  const consoleGeo = new THREE.BoxGeometry(0.14, 0.62, 0.22); // Increased height to reach floor
+  // Dashboard Console (Center)
+  const consoleGeo = new THREE.BoxGeometry(0.14, 0.62, 0.22);
   const consoleMesh = new THREE.Mesh(consoleGeo, frameMaterial);
-  consoleMesh.position.set(0, 0.35, -0.32); // Adjusted position for taller console
+  consoleMesh.position.set(0, 0.35, -0.32);
   bodyGroup.add(consoleMesh);
 
-  const stickGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.26, 8);
-  const stickMesh = new THREE.Mesh(stickGeo, chassisMaterial);
-  stickMesh.position.set(-0.06, 0.72, -0.32);
-  stickMesh.rotation.x = -0.3;
-  bodyGroup.add(stickMesh);
+  // Steering Column and Wheel (In front of Driver)
+  const columnGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8);
+  const columnMesh = new THREE.Mesh(columnGeo, chassisMaterial);
+  columnMesh.position.set(-0.35, 0.7, -0.35); // Angled down towards dashboard
+  columnMesh.rotation.x = -0.6;
+  bodyGroup.add(columnMesh);
 
-  const handleGeo = new THREE.BoxGeometry(0.18, 0.03, 0.04);
-  const handleMesh = new THREE.Mesh(handleGeo, frameMaterial);
-  handleMesh.position.set(-0.06, 0.83, -0.36);
-  bodyGroup.add(handleMesh);
+  const wheelGeo = new THREE.TorusGeometry(0.16, 0.025, 12, 24);
+  const wheelMesh = new THREE.Mesh(wheelGeo, frameMaterial);
+  wheelMesh.position.set(-0.35, 0.82, -0.25); // Positioned for hands
+  wheelMesh.rotation.x = -0.6; // Tilted towards driver
+  bodyGroup.add(wheelMesh);
 
   // Driver seat mount anchor: local point where the astronaut's butt sits
   const driverSeatMount = new THREE.Group();

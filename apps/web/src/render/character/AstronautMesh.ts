@@ -153,11 +153,9 @@ export function createAstronautMesh(): AstronautMeshInstance {
       leftKnee.rotation.set(1.57, 0, 0);
       rightKnee.rotation.set(1.57, 0, 0);
 
-      // Right hand (variable leftArm) grips central T-handle console (now higher up)
-      leftArm.rotation.set(-0.6, 0, 0);
-      
-      // Left hand (variable rightArm) rests flat on the lap/armrest
-      rightArm.rotation.set(-1.57, 0, 0);
+      // Both hands point forward to grip the steering wheel
+      leftArm.rotation.set(-0.90, 0, -0.05);
+      rightArm.rotation.set(-0.90, 0, 0.05);
     } else {
       bodyGroup.position.set(0, 0, 0);
       bodyGroup.rotation.set(0, 0, 0);
