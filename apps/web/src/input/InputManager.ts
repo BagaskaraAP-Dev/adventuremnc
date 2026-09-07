@@ -5,6 +5,7 @@ export class InputManager {
   public onToggleCameraMode?: () => void;
   public onRespawn?: () => void;
   public onInteract?: () => void;
+  public onToggleAudio?: () => void;
 
   constructor() {
     window.addEventListener('keydown', (e) => {
@@ -25,6 +26,9 @@ export class InputManager {
       }
       if (e.code === 'KeyE' && this.onInteract) {
         this.onInteract();
+      }
+      if (e.code === 'KeyM' && this.onToggleAudio) {
+        this.onToggleAudio();
       }
     });
 

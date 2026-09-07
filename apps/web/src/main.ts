@@ -19,6 +19,7 @@ import { InputManager } from './input/InputManager';
 import { HUD } from './ui/HUD';
 import { CtfManager } from './ctf/CtfManager';
 import { LocalSaveManager } from './save/LocalSaveManager';
+import { LunarAudioEngine } from './audio/LunarAudioEngine';
 
 function bootstrap(): void {
   const canvas = document.getElementById('render-canvas') as HTMLCanvasElement;
@@ -29,6 +30,7 @@ function bootstrap(): void {
   const regolithMat = createRegolithMaterial(lunarScene.sunLight);
   const terrainManager = new TerrainManager(lunarScene.scene, regolithMat);
   const dustParticles = new BallisticDustParticles(lunarScene.scene);
+  const audioEngine = new LunarAudioEngine();
 
   // Habitat Base Module (Airlock at X: -22, Z: -9.8)
   const habitat = createHabitatMesh(-22, -18);
@@ -73,14 +75,38 @@ function bootstrap(): void {
 
   let gameMode: 'EVA_ASTRONAUT' | 'ROVER_DRIVING' | 'FLY_CAMERA' = 'EVA_ASTRONAUT';
   let wheelSpinAngle = 0;
+  let prevGrounded = true;
 
   const inputManager = new InputManager();
   const hud = new HUD();
   const ctfManager = new CtfManager();
 
+  // Wire CTF audio effects
+  ctfManager.terminal.onPlaySound = (type) => {
+    if (type === 'click') {
+      audioEngine.playTerminalClick();
+    } else if (type === 'quindar') {
+      audioEngine.playQuindarTone();
+    }
+  };
+
   hud.onToggleTerminal = () => {
+    audioEngine.playTerminalClick();
     ctfManager.toggleTerminal();
   };
+
+  // Wire Audio Mute Toggle
+  const toggleAudio = () => {
+    const isMuted = audioEngine.toggleMute();
+    hud.setAudioMuted(isMuted);
+    hud.showToast(
+      isMuted
+        ? '🔇 AUDIO MUTED'
+        : '🔊 LUNAR ACOUSTIC SYSTEM ACTIVE (VACUUM SIMULATION)'
+    );
+  };
+  inputManager.onToggleAudio = toggleAudio;
+  hud.onToggleAudio = toggleAudio;
 
   // Sun vs Shadow analytical horizon raycaster (based on low elevation lunar sun)
   const sunDir = new THREE.Vector3(1, 0.0314, 0.4).normalize();
@@ -118,6 +144,7 @@ function bootstrap(): void {
 
     // Priority 1: Habitat Airlock Interaction (Cycle, Refill Life Support & Save)
     if (gameMode === 'EVA_ASTRONAUT' && habitat.canInteractAirlock(charState.x, charState.z)) {
+      audioEngine.playAirlockCycle();
       character.setState({
         health: 100,
         oxygen: 100,
@@ -182,6 +209,7 @@ function bootstrap(): void {
   };
 
   const executeRespawn = () => {
+    audioEngine.playQuindarTone();
     const respawnX = habitat.airlockX;
     const respawnZ = habitat.airlockZ + 2.2;
     const respawnGroundY = sampleLunarElevation(respawnX, respawnZ);
@@ -263,6 +291,10 @@ function bootstrap(): void {
           { isInSunlight: true, isInsideShelter: true }
         );
 
+        // Sound: Rover motor humming conducted through driver seat
+        audioEngine.updateRoverSound(rState.speed, true);
+        audioEngine.updatePhysiology(dt, false, character.getState().oxygen, false);
+
         wheelSpinAngle -= (rState.speed / 0.35) * dt;
         roverMesh.updatePose(
           rState.x,
@@ -326,14 +358,45 @@ function bootstrap(): void {
 
         const cState = character.getState();
 
+        // Sound: Stepping out of rover produces COMPLETE VACUUM SILENCE for the rover
+        audioEngine.updateRoverSound(0, false);
+
+        // Sound: Internal helmet breathing & oxygen life support
+        const isSprinting =
+          inputManager.isKeyDown('ShiftLeft') || inputManager.isKeyDown('ShiftRight');
+        audioEngine.updatePhysiology(dt, isSprinting, cState.oxygen, cState.isDead);
+
+        // Sound: Bone-conducted muffled regolith footsteps
+        const hSpeed = Math.sqrt(cState.vx * cState.vx + cState.vz * cState.vz);
+        if (cState.isGrounded && hSpeed > 0.3) {
+          audioEngine.triggerFootstep(cState.lopingCycle, true);
+        }
+
+        // Sound: Impact landing shockwave
+        if (!prevGrounded && cState.isGrounded && cState.lastImpactSpeed > 2.0) {
+          audioEngine.playLandingImpact(cState.lastImpactSpeed);
+        }
+        prevGrounded = cState.isGrounded;
+
+        // Sound: Alarms for critical life-support conditions
+        if (cState.oxygen < 20 && !cState.isDead) {
+          audioEngine.playAlarmBeep('O2');
+        } else if (
+          (cState.suitTemperature < 5 || cState.suitTemperature > 45) &&
+          !cState.isDead
+        ) {
+          audioEngine.playAlarmBeep('THERMAL');
+        }
+
         astronautMesh.group.position.set(cState.x, cState.y, cState.z);
         astronautMesh.group.rotation.set(0, cState.yaw, 0);
-        const hSpeed = Math.sqrt(cState.vx * cState.vx + cState.vz * cState.vz);
         astronautMesh.updateAnimation(cState.lopingCycle, cState.isGrounded, cState.vy, hSpeed);
 
         thirdPersonCamera.update(cState.x, cState.y, cState.z, dt);
         terrainManager.update(cState.x, cState.z);
       } else {
+        // Fly camera: vacuum silence
+        audioEngine.updateRoverSound(0, false);
         flyCamera.update(dt);
         const pos = flyCamera.getPosition();
         terrainManager.update(pos.x, pos.z);

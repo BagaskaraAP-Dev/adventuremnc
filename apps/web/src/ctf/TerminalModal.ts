@@ -9,6 +9,7 @@ export class TerminalModal {
   private historyIndex: number = -1;
 
   public onFlagDecrypted?: (flag: string) => void;
+  public onPlaySound?: (type: 'click' | 'quindar') => void;
 
   constructor() {
     this.container = document.createElement('div');
@@ -54,6 +55,7 @@ export class TerminalModal {
       e.preventDefault();
       const val = this.inputElement.value.trim();
       if (val.length > 0) {
+        this.onPlaySound?.('click');
         this.commandHistory.push(val);
         this.historyIndex = this.commandHistory.length;
         this.inputElement.value = '';
@@ -205,6 +207,7 @@ export class TerminalModal {
           this.println('✓ [SUCCESS] SHA-256 KEYSTREAM DERIVATION COMPLETE!', 'term-green');
           this.println(`✓ [SUCCESS] FLAG ACQUIRED: ${res.flag!}`, 'term-yellow');
           this.println('Launching secure telemetry modal...', 'term-cyan');
+          this.onPlaySound?.('quindar');
           this.hide();
           if (this.onFlagDecrypted) {
             this.onFlagDecrypted(res.flag!);

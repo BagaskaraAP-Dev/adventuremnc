@@ -65,6 +65,8 @@ export class HUD {
 
   public onToggleTerminal?: () => void;
   public onRespawn?: () => void;
+  public onToggleAudio?: () => void;
+  private isAudioMuted: boolean = false;
 
   constructor() {
     this.container = document.createElement('div');
@@ -199,9 +201,22 @@ export class HUD {
           this.onToggleTerminal();
         }
       }
+      if (target && target.closest('.hud-btn-audio')) {
+        e.stopPropagation();
+        if (this.onToggleAudio) {
+          this.onToggleAudio();
+        }
+      }
     });
 
     this.renderFooter('EVA_ASTRONAUT');
+  }
+
+  public setAudioMuted(muted: boolean): void {
+    this.isAudioMuted = muted;
+    const prevMode = this.lastRenderedMode as 'EVA_ASTRONAUT' | 'ROVER_DRIVING' | 'FLY_CAMERA';
+    this.lastRenderedMode = '';
+    this.renderFooter(prevMode || 'EVA_ASTRONAUT');
   }
 
   public showToast(message: string, durationMs = 3500): void {
@@ -221,6 +236,7 @@ export class HUD {
     this.lastRenderedMode = mode;
 
     const termBtn = `<span class="hud-key hud-btn-terminal" style="cursor: pointer; color: #00f0ff; background: rgba(0,240,255,0.15); border: 1px solid rgba(0,240,255,0.4); padding: 1px 6px; border-radius: 3px;">[T] SAT-COM TERMINAL</span>`;
+    const audioBtn = `<span class="hud-key hud-btn-audio" style="cursor: pointer; color: ${this.isAudioMuted ? '#ff5252' : '#00ff88'}; background: ${this.isAudioMuted ? 'rgba(255,82,82,0.15)' : 'rgba(0,255,136,0.12)'}; border: 1px solid ${this.isAudioMuted ? 'rgba(255,82,82,0.4)' : 'rgba(0,255,136,0.35)'}; padding: 1px 6px; border-radius: 3px;">[M] SOUND: ${this.isAudioMuted ? 'OFF 🔇' : 'ON 🔊'}</span>`;
 
     if (mode === 'ROVER_DRIVING') {
       this.footerElement.innerHTML = `
@@ -228,7 +244,8 @@ export class HUD {
         <span class="hud-key">A / D</span> STEER • 
         <span class="hud-key">SPACE</span> HANDBRAKE • 
         <span class="hud-key">E</span> EXIT ROVER • 
-        ${termBtn}
+        ${termBtn} • 
+        ${audioBtn}
       `;
     } else if (mode === 'EVA_ASTRONAUT') {
       this.footerElement.innerHTML = `
@@ -237,7 +254,8 @@ export class HUD {
         <span class="hud-key">SPACE</span> 1/6G HOP • 
         <span class="hud-key">SHIFT</span> SPRINT • 
         <span class="hud-key">V</span> FLY CAM • 
-        ${termBtn}
+        ${termBtn} • 
+        ${audioBtn}
       `;
     } else {
       this.footerElement.innerHTML = `
@@ -245,7 +263,8 @@ export class HUD {
         <span class="hud-key">SPACE / C</span> ASCEND / DESCEND • 
         <span class="hud-key">SHIFT</span> TURBO • 
         <span class="hud-key">V</span> EXIT FLY • 
-        ${termBtn}
+        ${termBtn} • 
+        ${audioBtn}
       `;
     }
   }
