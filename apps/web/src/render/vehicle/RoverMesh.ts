@@ -88,46 +88,46 @@ export function createRoverMesh(): RoverMeshInstance {
 
   // Driver Seat
   const driverBase = new THREE.Mesh(seatBaseGeo, frameMaterial);
-  driverBase.position.set(-0.35, 0.18, 0.02);
+  driverBase.position.set(-0.35, 0.38, 0.02);
   driverBase.castShadow = true;
   bodyGroup.add(driverBase);
 
   const driverBack = new THREE.Mesh(seatBackGeo, frameMaterial);
-  driverBack.position.set(-0.35, 0.44, 0.22);
+  driverBack.position.set(-0.35, 0.64, 0.22);
   driverBack.castShadow = true;
   bodyGroup.add(driverBack);
 
   // Passenger Seat
   const passBase = new THREE.Mesh(seatBaseGeo, frameMaterial);
-  passBase.position.set(0.35, 0.18, 0.02);
+  passBase.position.set(0.35, 0.38, 0.02);
   passBase.castShadow = true;
   bodyGroup.add(passBase);
 
   const passBack = new THREE.Mesh(seatBackGeo, frameMaterial);
-  passBack.position.set(0.35, 0.44, 0.22);
+  passBack.position.set(0.35, 0.64, 0.22);
   passBack.castShadow = true;
   bodyGroup.add(passBack);
 
   // Center T-handle steering console & tiller stick
-  const consoleGeo = new THREE.BoxGeometry(0.14, 0.42, 0.22);
+  const consoleGeo = new THREE.BoxGeometry(0.14, 0.62, 0.22); // Increased height to reach floor
   const consoleMesh = new THREE.Mesh(consoleGeo, frameMaterial);
-  consoleMesh.position.set(0, 0.32, -0.32);
+  consoleMesh.position.set(0, 0.35, -0.32); // Adjusted position for taller console
   bodyGroup.add(consoleMesh);
 
   const stickGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.26, 8);
   const stickMesh = new THREE.Mesh(stickGeo, chassisMaterial);
-  stickMesh.position.set(-0.06, 0.52, -0.32);
+  stickMesh.position.set(-0.06, 0.72, -0.32);
   stickMesh.rotation.x = -0.3;
   bodyGroup.add(stickMesh);
 
   const handleGeo = new THREE.BoxGeometry(0.18, 0.03, 0.04);
   const handleMesh = new THREE.Mesh(handleGeo, frameMaterial);
-  handleMesh.position.set(-0.06, 0.63, -0.36);
+  handleMesh.position.set(-0.06, 0.83, -0.36);
   bodyGroup.add(handleMesh);
 
   // Driver seat mount anchor: local point where the astronaut's butt sits
   const driverSeatMount = new THREE.Group();
-  driverSeatMount.position.set(-0.35, 0.22, 0.02);
+  driverSeatMount.position.set(-0.35, 0.42, 0.02);
   driverSeatMount.rotation.set(0, Math.PI, 0); // Face forward towards -Z!
   bodyGroup.add(driverSeatMount);
 

@@ -149,15 +149,15 @@ export function createAstronautMesh(): AstronautMeshInstance {
       leftHip.rotation.set(-1.57, 0, 0);
       rightHip.rotation.set(-1.57, 0, 0);
 
-      // Knees bend slightly so boots stretch forward to rest on the floor
-      leftKnee.rotation.set(0.63, 0, 0);
-      rightKnee.rotation.set(0.63, 0, 0);
+      // Knees bend exactly 90 degrees straight down for a classic sitting posture
+      leftKnee.rotation.set(1.57, 0, 0);
+      rightKnee.rotation.set(1.57, 0, 0);
 
-      // Right hand (variable leftArm) grips central T-handle console
-      leftArm.rotation.set(-0.90, 0, 0);
+      // Right hand (variable leftArm) grips central T-handle console (now higher up)
+      leftArm.rotation.set(-0.6, 0, 0);
       
-      // Left hand (variable rightArm) rests on the lap/armrest
-      rightArm.rotation.set(-1.5, 0, 0);
+      // Left hand (variable rightArm) rests flat on the lap/armrest
+      rightArm.rotation.set(-1.57, 0, 0);
     } else {
       bodyGroup.position.set(0, 0, 0);
       bodyGroup.rotation.set(0, 0, 0);
@@ -175,42 +175,66 @@ export function createAstronautMesh(): AstronautMeshInstance {
 
     if (isGrounded) {
       if (speed > 0.1) {
-        // Apollo Loping Bounding Gait: vertical hopping bob + leg swing with knee flexion
-        const bob = Math.abs(Math.sin(lopingCycle)) * 0.14;
+        // Cool swagger run
+        const runCycle = lopingCycle * 1.5; // faster cycle
+        const bob = Math.abs(Math.sin(runCycle)) * 0.08;
         bodyGroup.position.y = bob;
 
-        const legAngle = Math.sin(lopingCycle) * 0.55;
-        leftHip.rotation.x = legAngle;
-        rightHip.rotation.x = -legAngle;
+        const legAngle = Math.sin(runCycle) * 0.65;
+        
+        // Legs swinging
+        leftHip.rotation.x = -legAngle;
+        rightHip.rotation.x = legAngle;
 
-        // Subtle knee flex when swinging leg backward
-        leftKnee.rotation.x = legAngle < 0 ? legAngle * 0.4 : 0;
-        rightKnee.rotation.x = -legAngle < 0 ? -legAngle * 0.4 : 0;
+        // Bending knee naturally when swinging forward (negative hip X)
+        leftKnee.rotation.x = leftHip.rotation.x < 0 ? -leftHip.rotation.x * 1.2 : 0;
+        rightKnee.rotation.x = rightHip.rotation.x < 0 ? -rightHip.rotation.x * 1.2 : 0;
 
-        leftArm.rotation.x = -legAngle * 0.75;
-        rightArm.rotation.x = legAngle * 0.75;
+        // Cool arm swing
+        leftArm.rotation.x = legAngle * 0.9;
+        rightArm.rotation.x = -legAngle * 0.9;
+        leftArm.rotation.z = 0.15;
+        rightArm.rotation.z = -0.15;
+
+        // Slight forward lean for momentum
+        bodyGroup.rotation.x = 0.15;
+        
+        // Reset hip spread from idle
+        leftHip.rotation.z = 0;
+        rightHip.rotation.z = 0;
       } else {
-        // Idle
-        bodyGroup.position.y = 0;
-        leftHip.rotation.set(0, 0, 0);
-        rightHip.rotation.set(0, 0, 0);
-        leftKnee.rotation.set(0, 0, 0);
-        rightKnee.rotation.set(0, 0, 0);
-        leftArm.rotation.set(0, 0, 0);
-        rightArm.rotation.set(0, 0, 0);
+        // Cool Idle Stance (Upright and relaxed)
+        const breath = Math.sin(performance.now() * 0.002) * 0.015;
+        bodyGroup.position.y = breath;
+        bodyGroup.rotation.x = 0; // Perfectly upright
+        
+        // Relaxed leg stance
+        leftHip.rotation.z = -0.1;
+        rightHip.rotation.z = 0.1;
+        leftHip.rotation.x = 0;
+        rightHip.rotation.x = 0;
+        leftKnee.rotation.x = 0.05;
+        rightKnee.rotation.x = 0.05;
+        
+        // Relaxed arms
+        leftArm.rotation.x = -0.1;
+        rightArm.rotation.x = -0.1;
+        leftArm.rotation.z = 0.15;
+        rightArm.rotation.z = -0.15;
       }
     } else {
-      // In air flight: legs flexed, arms stabilized
-      bodyGroup.position.y = 0.05;
-      leftHip.rotation.x = 0.35;
+      // Airborne (jumping/falling) - Action pose
+      bodyGroup.rotation.x = 0.1;
+      leftHip.rotation.z = 0;
+      rightHip.rotation.z = 0;
+      leftHip.rotation.x = -0.4;
       rightHip.rotation.x = 0.2;
-      leftKnee.rotation.x = -0.3;
-      rightKnee.rotation.x = -0.2;
-      leftArm.rotation.x = -0.4;
-      rightArm.rotation.x = -0.4;
-
-      // Subtle tilt based on vertical velocity
-      bodyGroup.rotation.x = Math.max(-0.25, Math.min(0.25, -vy * 0.04));
+      leftKnee.rotation.x = 0.5;
+      rightKnee.rotation.x = 0.1;
+      leftArm.rotation.x = -0.6;
+      rightArm.rotation.x = 0.5;
+      leftArm.rotation.z = 0.3;
+      rightArm.rotation.z = -0.3;
     }
   };
 
