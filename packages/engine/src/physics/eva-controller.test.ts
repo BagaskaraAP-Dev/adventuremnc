@@ -82,4 +82,33 @@ describe('EvaCharacterController Physics & Gait', () => {
     const state = controller.getState();
     expect(state.lopingCycle).toBeGreaterThan(0);
   });
+
+  it('correctly maps camera-relative inputs to world movement at multiple camera yaw angles', () => {
+    // 1. Camera yaw = 0 (looking towards -Z)
+    // Moving forward (W) must produce vz < 0, vx = 0
+    const ctrlYaw0 = new EvaCharacterController(0, 0);
+    ctrlYaw0.update({ ...defaultInputs, moveForward: true, cameraYaw: 0 }, FIXED_DT);
+    expect(ctrlYaw0.getState().vz).toBeLessThan(0);
+    expect(Math.abs(ctrlYaw0.getState().vx)).toBeCloseTo(0, 4);
+
+    // Moving right (D) must produce vx > 0, vz = 0
+    const ctrlRight = new EvaCharacterController(0, 0);
+    ctrlRight.update({ ...defaultInputs, moveRight: true, cameraYaw: 0 }, FIXED_DT);
+    expect(ctrlRight.getState().vx).toBeGreaterThan(0);
+    expect(Math.abs(ctrlRight.getState().vz)).toBeCloseTo(0, 4);
+
+    // 2. Camera yaw = PI/2 (looking towards -X)
+    // Moving forward (W) must produce vx < 0, vz = 0
+    const ctrlYaw90 = new EvaCharacterController(0, 0);
+    ctrlYaw90.update({ ...defaultInputs, moveForward: true, cameraYaw: Math.PI / 2 }, FIXED_DT);
+    expect(ctrlYaw90.getState().vx).toBeLessThan(0);
+    expect(Math.abs(ctrlYaw90.getState().vz)).toBeCloseTo(0, 4);
+
+    // 3. Camera yaw = -PI/2 (looking towards +X)
+    // Moving forward (W) must produce vx > 0, vz = 0
+    const ctrlYawMinus90 = new EvaCharacterController(0, 0);
+    ctrlYawMinus90.update({ ...defaultInputs, moveForward: true, cameraYaw: -Math.PI / 2 }, FIXED_DT);
+    expect(ctrlYawMinus90.getState().vx).toBeGreaterThan(0);
+    expect(Math.abs(ctrlYawMinus90.getState().vz)).toBeCloseTo(0, 4);
+  });
 });

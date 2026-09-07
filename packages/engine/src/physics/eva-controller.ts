@@ -74,48 +74,49 @@ export class EvaCharacterController {
 
     const groundY = sampleLunarElevation(this.state.x, this.state.z);
 
-    // 1. Horizontal Input & Movement Direction
-    let wishX = 0;
-    let wishZ = 0;
+    // 1. Horizontal Input & Movement Direction (Camera-Relative)
+    const fwdInput = (inputs.moveForward ? 1 : 0) - (inputs.moveBackward ? 1 : 0);
+    const rightInput = (inputs.moveRight ? 1 : 0) - (inputs.moveLeft ? 1 : 0);
+    const hasInput = fwdInput !== 0 || rightInput !== 0;
 
-    if (inputs.moveForward) wishZ -= 1;
-    if (inputs.moveBackward) wishZ += 1;
-    if (inputs.moveLeft) wishX -= 1;
-    if (inputs.moveRight) wishX += 1;
-
-    const hasInput = wishX !== 0 || wishZ !== 0;
-
-    // Rotate wish vector by camera yaw
     let targetVx = 0;
     let targetVz = 0;
 
     if (hasInput) {
-      const len = Math.sqrt(wishX * wishX + wishZ * wishZ);
-      wishX /= len;
-      wishZ /= len;
+      const len = Math.hypot(fwdInput, rightInput);
+      const nf = fwdInput / len;
+      const nr = rightInput / len;
 
       const cosYaw = Math.cos(inputs.cameraYaw);
       const sinYaw = Math.sin(inputs.cameraYaw);
 
-      const worldWishX = wishX * cosYaw - wishZ * sinYaw;
-      const worldWishZ = wishX * sinYaw + wishZ * cosYaw;
+      // Camera horizontal forward: (-sinYaw, -cosYaw)
+      // Camera horizontal right:   (cosYaw, -sinYaw)
+      const worldWishX = nf * (-sinYaw) + nr * cosYaw;
+      const worldWishZ = nf * (-cosYaw) + nr * (-sinYaw);
 
       const targetSpeed = inputs.sprint ? EVA_SPRINT_SPEED : EVA_WALK_SPEED;
       targetVx = worldWishX * targetSpeed;
       targetVz = worldWishZ * targetSpeed;
 
-      // Update character face yaw towards movement direction
-      this.state.yaw = Math.atan2(worldWishX, worldWishZ);
+      // Smoothly rotate character to face movement direction
+      const targetYaw = Math.atan2(worldWishX, worldWishZ);
+      let yawDiff = targetYaw - this.state.yaw;
+      while (yawDiff < -Math.PI) yawDiff += Math.PI * 2;
+      while (yawDiff > Math.PI) yawDiff -= Math.PI * 2;
+      this.state.yaw += yawDiff * Math.min(1.0, dt * 18.0);
     }
 
     // 2. Traction & Inertia Integration
     if (this.state.isGrounded) {
       if (hasInput) {
-        // Accelerate with low regolith traction
+        // Accelerate with low regolith traction, with traction boost when changing directions
         const dvX = targetVx - this.state.vx;
         const dvZ = targetVz - this.state.vz;
         const dvLen = Math.sqrt(dvX * dvX + dvZ * dvZ);
-        const maxStep = EVA_TRACTION_ACCEL * dt;
+        const isCounterMove = (targetVx * this.state.vx + targetVz * this.state.vz) < 0;
+        const tractionFactor = isCounterMove ? 2.5 : 1.0;
+        const maxStep = EVA_TRACTION_ACCEL * tractionFactor * dt;
 
         if (dvLen <= maxStep) {
           this.state.vx = targetVx;
@@ -127,7 +128,7 @@ export class EvaCharacterController {
       } else {
         // Decelerate / slide on regolith
         const curSpeed = Math.sqrt(this.state.vx * this.state.vx + this.state.vz * this.state.vz);
-        const decelStep = EVA_DECEL * dt;
+        const decelStep = (EVA_DECEL * 1.5) * dt;
         if (curSpeed <= decelStep) {
           this.state.vx = 0;
           this.state.vz = 0;
@@ -173,7 +174,13 @@ export class EvaCharacterController {
     this.state.y += this.state.vy * dt;
     this.state.z += this.state.vz * dt;
 
-    // 4. Ground Collision & Fall Damage
+    // 4. Ground Collision, Slope Snapping & Fall Damage
+    const distAboveGround = this.state.y - groundY;
+    if (this.state.isGrounded && !this.inJumpMeasurement && distAboveGround > 0 && distAboveGround <= 0.45) {
+      this.state.y = groundY;
+      this.state.vy = 0;
+    }
+
     if (this.state.y <= groundY) {
       if (!this.state.isGrounded) {
         // Impact occurs

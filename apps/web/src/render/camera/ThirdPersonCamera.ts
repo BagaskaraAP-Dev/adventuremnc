@@ -20,19 +20,46 @@ export class ThirdPersonCamera {
   }
 
   private initEventListeners(): void {
+    let isDragging = false;
+    let prevX = 0;
+    let prevY = 0;
+
     this.domElement.addEventListener('click', () => {
       this.domElement.requestPointerLock();
+    });
+
+    this.domElement.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      prevX = e.clientX;
+      prevY = e.clientY;
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
     });
 
     document.addEventListener('pointerlockchange', () => {
       this.isLocked = document.pointerLockElement === this.domElement;
     });
 
-    document.addEventListener('mousemove', (event) => {
-      if (!this.isLocked) return;
+    window.addEventListener('mousemove', (event) => {
+      let dx = 0;
+      let dy = 0;
 
-      this.yaw -= event.movementX * 0.0022;
-      this.pitch -= event.movementY * 0.0022;
+      if (this.isLocked) {
+        dx = event.movementX;
+        dy = event.movementY;
+      } else if (isDragging) {
+        dx = event.clientX - prevX;
+        dy = event.clientY - prevY;
+        prevX = event.clientX;
+        prevY = event.clientY;
+      } else {
+        return;
+      }
+
+      this.yaw -= dx * 0.0022;
+      this.pitch -= dy * 0.0022;
 
       // Clamp pitch between -0.85 (-48 deg) and +1.1 (+63 deg)
       this.pitch = Math.max(-0.85, Math.min(1.1, this.pitch));
