@@ -89,8 +89,7 @@ export class HUD {
       const speedKmH = ((data.roverSpeed || 0) * 3.6).toFixed(1);
       this.suitElement.textContent = `SUIT: ${healthClamped}% | ROVER SPEED: ${speedKmH} km/h`;
       this.dynamicsElement.textContent = `TRACTION: LOW REGOLITH | BRAKE: EXTENDED`;
-      this.promptElement.style.display = 'block';
-      this.promptElement.textContent = '[E] EXIT ROVER';
+      this.promptElement.style.display = 'none';
       this.footerElement.innerHTML = `
         <span class="hud-key">W / S</span> ACCEL / BRAKE • 
         <span class="hud-key">A / D</span> STEER • 
