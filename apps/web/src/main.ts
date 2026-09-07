@@ -16,7 +16,7 @@ import { createRoverMesh } from './render/vehicle/RoverMesh';
 import { BallisticDustParticles } from './render/particles/BallisticDustParticles';
 import { InputManager } from './input/InputManager';
 import { HUD } from './ui/HUD';
-import { FlagModal } from './ui/FlagModal';
+import { CtfManager } from './ctf/CtfManager';
 
 function bootstrap(): void {
   const canvas = document.getElementById('render-canvas') as HTMLCanvasElement;
@@ -46,8 +46,11 @@ function bootstrap(): void {
 
   const inputManager = new InputManager();
   const hud = new HUD();
-  const flagModal = new FlagModal();
-  void flagModal;
+  const ctfManager = new CtfManager();
+
+  hud.onToggleTerminal = () => {
+    ctfManager.toggleTerminal();
+  };
 
   // Camera Mode Toggle
   inputManager.onToggleCameraMode = () => {

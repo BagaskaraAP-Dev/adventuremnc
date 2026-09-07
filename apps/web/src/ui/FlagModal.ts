@@ -1,7 +1,7 @@
 export class FlagModal {
   private container: HTMLElement;
   private isVisible: boolean = false;
-  private static readonly FLAG = 'KTCG{M00nc2ust_l3v3l_b494sB3Rc4nd4_BagaskaraAP-Dev}';
+  private currentFlag: string = '';
 
   constructor() {
     this.container = document.createElement('div');
@@ -13,10 +13,10 @@ export class FlagModal {
       <div class="ctf-modal-card">
         <div class="ctf-modal-badge">🚩 MISSION ACCOMPLISHED // CTF SOLVED</div>
         <h2 class="ctf-modal-title">FLAG CAPTURED!</h2>
-        <p class="ctf-modal-desc">Selamat! Kunci enkripsi telemetry satelit Bulan berhasil diekstrak:</p>
+        <p class="ctf-modal-desc">Selamat! Kunci enkripsi telemetry satelit Bulan berhasil didekripsi:</p>
         
         <div class="ctf-flag-box">
-          <code id="ctf-flag-text">${FlagModal.FLAG}</code>
+          <code id="ctf-flag-text">-- DECRYPTING --</code>
           <button id="ctf-copy-btn" class="ctf-btn ctf-btn-copy" title="Copy to clipboard">COPY</button>
         </div>
 
@@ -32,17 +32,20 @@ export class FlagModal {
     if (copyBtn) {
       copyBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(FlagModal.FLAG).then(() => {
-            copyBtn.textContent = 'COPIED! ✓';
-            copyBtn.style.background = '#28a745';
-            setTimeout(() => {
-              copyBtn.textContent = 'COPY';
-              copyBtn.style.background = '';
-            }, 2000);
-          }).catch(() => {
-            copyBtn.textContent = 'COPIED!';
-          });
+        if (navigator.clipboard && this.currentFlag) {
+          navigator.clipboard
+            .writeText(this.currentFlag)
+            .then(() => {
+              copyBtn.textContent = 'COPIED! ✓';
+              copyBtn.style.background = '#28a745';
+              setTimeout(() => {
+                copyBtn.textContent = 'COPY';
+                copyBtn.style.background = '';
+              }, 2000);
+            })
+            .catch(() => {
+              copyBtn.textContent = 'COPIED!';
+            });
         }
       });
     }
@@ -61,11 +64,14 @@ export class FlagModal {
         this.hide();
       }
     });
-
-    this.registerConsoleCommand();
   }
 
-  public show(): void {
+  public show(flag: string): void {
+    this.currentFlag = flag;
+    const flagText = document.getElementById('ctf-flag-text');
+    if (flagText) {
+      flagText.textContent = flag;
+    }
     this.isVisible = true;
     this.container.style.display = 'flex';
   }
@@ -75,35 +81,7 @@ export class FlagModal {
     this.container.style.display = 'none';
   }
 
-  private registerConsoleCommand(): void {
-    const trigger = () => {
-      this.show();
-      return `🚩 [CTF FLAG CAPTURED]\nFlag: ${FlagModal.FLAG}\nStatus: Popup displayed on game screen!`;
-    };
-
-    const winFn = function () {
-      return trigger();
-    };
-    winFn.toString = () => trigger();
-
-    try {
-      Object.defineProperty(window, 'win', {
-        get: () => {
-          trigger();
-          return winFn;
-        },
-        set: () => {},
-        configurable: true,
-      });
-    } catch {
-      (window as unknown as Record<string, unknown>)['win'] = winFn;
-    }
-
-    console.info(
-      '%c[MNC-CTF] Satellite telemetry online. Type %cwin%c in console to capture flag.',
-      'color: #64b5f6; font-family: monospace;',
-      'color: #ffd700; font-weight: bold; background: #222; padding: 2px 6px; border-radius: 3px;',
-      'color: #64b5f6; font-family: monospace;'
-    );
+  public isOpen(): boolean {
+    return this.isVisible;
   }
 }

@@ -29,6 +29,9 @@ export class HUD {
   private breachElement: HTMLElement;
   private promptElement: HTMLElement;
   private footerElement: HTMLElement;
+  private lastRenderedMode: string = '';
+
+  public onToggleTerminal?: () => void;
 
   constructor() {
     this.container = document.createElement('div');
@@ -53,13 +56,7 @@ export class HUD {
         <div class="hud-row" id="hud-perf">FPS: -- | FT: -- ms</div>
         <div class="hud-row hud-dim" id="hud-mesh">DRAWS: -- | TRIS: --</div>
       </div>
-      <div class="hud-footer" id="hud-footer">
-        <span class="hud-key">CLICK TO LOOK</span> • 
-        <span class="hud-key">W A S D</span> LOPING MOVE • 
-        <span class="hud-key">SPACE</span> 1/6G HOP • 
-        <span class="hud-key">SHIFT</span> SPRINT • 
-        <span class="hud-key">V</span> TOGGLE CAM
-      </div>
+      <div class="hud-footer" id="hud-footer"></div>
     `;
 
     document.body.appendChild(this.container);
@@ -73,6 +70,52 @@ export class HUD {
     this.breachElement = document.getElementById('hud-breach')!;
     this.promptElement = document.getElementById('hud-prompt')!;
     this.footerElement = document.getElementById('hud-footer')!;
+
+    this.footerElement.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target && target.closest('.hud-btn-terminal')) {
+        e.stopPropagation();
+        if (this.onToggleTerminal) {
+          this.onToggleTerminal();
+        }
+      }
+    });
+
+    this.renderFooter('EVA_ASTRONAUT');
+  }
+
+  private renderFooter(mode: 'EVA_ASTRONAUT' | 'ROVER_DRIVING' | 'FLY_CAMERA'): void {
+    if (this.lastRenderedMode === mode) return;
+    this.lastRenderedMode = mode;
+
+    const termBtn = `<span class="hud-key hud-btn-terminal" style="cursor: pointer; color: #00f0ff; background: rgba(0,240,255,0.15); border: 1px solid rgba(0,240,255,0.4); padding: 1px 6px; border-radius: 3px;">[T] SAT-COM TERMINAL</span>`;
+
+    if (mode === 'ROVER_DRIVING') {
+      this.footerElement.innerHTML = `
+        <span class="hud-key">W / S</span> ACCEL / BRAKE • 
+        <span class="hud-key">A / D</span> STEER • 
+        <span class="hud-key">SPACE</span> HANDBRAKE • 
+        <span class="hud-key">E</span> EXIT ROVER • 
+        ${termBtn}
+      `;
+    } else if (mode === 'EVA_ASTRONAUT') {
+      this.footerElement.innerHTML = `
+        <span class="hud-key">CLICK TO LOOK</span> • 
+        <span class="hud-key">W A S D</span> LOPING MOVE • 
+        <span class="hud-key">SPACE</span> 1/6G HOP • 
+        <span class="hud-key">SHIFT</span> SPRINT • 
+        <span class="hud-key">V</span> FLY CAM • 
+        ${termBtn}
+      `;
+    } else {
+      this.footerElement.innerHTML = `
+        <span class="hud-key">W A S D</span> FLY • 
+        <span class="hud-key">SPACE / C</span> ASCEND / DESCEND • 
+        <span class="hud-key">SHIFT</span> TURBO • 
+        <span class="hud-key">V</span> EXIT FLY • 
+        ${termBtn}
+      `;
+    }
   }
 
   public update(data: HudTelemetryData): void {
@@ -90,11 +133,6 @@ export class HUD {
       this.suitElement.textContent = `SUIT: ${healthClamped}% | ROVER SPEED: ${speedKmH} km/h`;
       this.dynamicsElement.textContent = `TRACTION: LOW REGOLITH | BRAKE: EXTENDED`;
       this.promptElement.style.display = 'none';
-      this.footerElement.innerHTML = `
-        <span class="hud-key">W / S</span> ACCEL / BRAKE • 
-        <span class="hud-key">A / D</span> STEER • 
-        <span class="hud-key">SPACE</span> HANDBRAKE
-      `;
     } else if (data.mode === 'EVA_ASTRONAUT') {
       this.suitElement.textContent = `SUIT: ${healthClamped}% | MODE: EVA BOUNDING`;
       this.dynamicsElement.textContent = `APEX: ${data.jumpApex.toFixed(2)}m | LAST IMPACT: ${data.lastImpactSpeed.toFixed(1)} m/s`;
@@ -104,23 +142,12 @@ export class HUD {
       } else {
         this.promptElement.style.display = 'none';
       }
-      this.footerElement.innerHTML = `
-        <span class="hud-key">CLICK TO LOOK</span> • 
-        <span class="hud-key">W A S D</span> LOPING MOVE • 
-        <span class="hud-key">SPACE</span> 1/6G HOP • 
-        <span class="hud-key">SHIFT</span> SPRINT • 
-        <span class="hud-key">V</span> FLY CAM
-      `;
     } else {
       this.suitElement.textContent = `SUIT: ${healthClamped}% | MODE: FREE FLY CAMERA`;
       this.promptElement.style.display = 'none';
-      this.footerElement.innerHTML = `
-        <span class="hud-key">W A S D</span> FLY • 
-        <span class="hud-key">SPACE / C</span> ASCEND / DESCEND • 
-        <span class="hud-key">SHIFT</span> TURBO • 
-        <span class="hud-key">V</span> EXIT FLY
-      `;
     }
+
+    this.renderFooter(data.mode);
 
     if (data.isDead) {
       this.breachElement.style.display = 'block';

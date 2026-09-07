@@ -8,6 +8,14 @@ export class InputManager {
 
   constructor() {
     window.addEventListener('keydown', (e) => {
+      // If typing in an input field (e.g. terminal input), ignore game movement inputs
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA'
+      ) {
+        return;
+      }
+
       this.keys.add(e.code);
       if (e.code === 'KeyV' && this.onToggleCameraMode) {
         this.onToggleCameraMode();
@@ -22,6 +30,10 @@ export class InputManager {
 
     window.addEventListener('keyup', (e) => {
       this.keys.delete(e.code);
+    });
+
+    window.addEventListener('blur', () => {
+      this.keys.clear();
     });
   }
 
@@ -55,5 +67,9 @@ export class InputManager {
 
   public isKeyDown(code: string): boolean {
     return this.keys.has(code);
+  }
+
+  public clearKeys(): void {
+    this.keys.clear();
   }
 }
