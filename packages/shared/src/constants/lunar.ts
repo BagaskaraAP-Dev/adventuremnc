@@ -39,3 +39,27 @@ export const EARTH_ANGULAR_DIAMETER_DEG = 1.9;
 
 /** Fixed timestep simulasi (detik) */
 export const FIXED_DT = 1 / 60;
+
+/** Kecepatan lepas kaki lompat vertikal astronot EVA (m/s) */
+export const EVA_JUMP_VELOCITY = 3.6;
+
+/** Kecepatan jalan loping dasar astronot EVA (m/s) (~8.6 km/h) */
+export const EVA_WALK_SPEED = 2.4;
+
+/** Kecepatan lari / sprint loping beruntun (m/s) (~18.7 km/h) */
+export const EVA_SPRINT_SPEED = 5.2;
+
+/** Akselerasi traksi di permukaan regolith (m/s²) — traksi rendah */
+export const EVA_TRACTION_ACCEL = 4.5;
+
+/** Deselerasi inersia saat meluncur di regolith (m/s²) */
+export const EVA_DECEL = 3.2;
+
+/** Ambang batas kecepatan benturan aman sebelum terkena fall damage (m/s) */
+export const EVA_SAFE_IMPACT_VELOCITY = 8.5;
+
+/** Koefisien damage per (m/s)² di atas ambang batas aman */
+export const EVA_FALL_DAMAGE_COEFF = 2.5;
+
+/** Air control factor di ruang hampa (tanpa gaya dorong luar) */
+export const EVA_AIR_CONTROL = 0.0;

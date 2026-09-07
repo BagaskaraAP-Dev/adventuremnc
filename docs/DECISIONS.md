@@ -13,6 +13,7 @@
 
 | `three` | `0.185.1` | Stable WebGL2 renderer standard for modern 3D browser games with tight memory control. |
 | `@types/three` | `0.185.0` | Exact TypeScript type definitions matching Three.js WebGL2 interface. |
+| `@dimforge/rapier3d-compat` | `0.20.0` | High-performance WASM 3D physics engine for deterministic rigid bodies and character simulation. |
 
 ## Core Architectural Decisions
 
@@ -30,6 +31,13 @@
 ### 4. Lunar Photometry & Opposition Effect
 - Rationale: Apollo photographs reveal that regolith lacks diffuse Lambertian behavior and displays a dramatic brightness surge (Heiligenschein) at the anti-solar point. We injected an opposition surge term directly into the PBR fragment shader (`onBeforeCompile`) evaluating phase angle $g = \arccos(-\mathbf{v} \cdot \mathbf{l})$, replicating authentic Hasselblad camera exposure with dark charcoal albedo (~0.12) and zero atmospheric scattering/fog.
 
-## Known Gaps (M1)
-- Character controller and Rapier physics worker integration (scheduled for M2).
-- Procedural rock and boulder instancing pass (scheduled for M2/M3).
+### 5. Kinematic EVA Locomotion & Bounding Gait
+- Rationale: Apollo EVA documentation emphasizes that terrestrial walking mechanics fail in 1/6 gravity because normal force is insufficient for rapid friction cycles. Our character controller integrates an authentic loping gait (bounding oscillation with vertical amplitude proportional to forward momentum) and low regolith traction (`EVA_TRACTION_ACCEL = 4.5` m/s²).
+
+### 6. Vacuum Air Control & Impact Velocity Damage
+- Rationale: In space vacuum, an astronaut in ballistic flight cannot alter their trajectory without external propulsive thrust. Air control is enforced strictly at 0.0. Furthermore, without atmospheric drag to cap falling speed at a terminal velocity, fall damage is calculated directly from the square of impact velocity exceeding the suit's kinetic threshold (`EVA_SAFE_IMPACT_VELOCITY = 8.5` m/s).
+
+## Known Gaps (M2)
+- Raycast vehicle physics and mining rover integration (scheduled for M3).
+- Ballistic regolith dust rooster-tail GPU particle system (scheduled for M3).
+- Life support survival systems (O2 depletion & PSR cryogenic freezing) (scheduled for M4).

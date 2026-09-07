@@ -1,9 +1,12 @@
-import { FixedTimestepLoop, sampleLunarElevation } from '@adventuremnc/engine';
+import { FixedTimestepLoop, sampleLunarElevation, EvaCharacterController } from '@adventuremnc/engine';
 import { WebGLRendererWrapper } from './render/Renderer';
 import { createLunarScene } from './render/scene/LunarScene';
 import { createRegolithMaterial } from './render/material/RegolithMaterial';
 import { TerrainManager } from './render/terrain/TerrainManager';
+import { ThirdPersonCamera } from './render/camera/ThirdPersonCamera';
 import { FlyCamera } from './render/camera/FlyCamera';
+import { createAstronautMesh } from './render/character/AstronautMesh';
+import { InputManager } from './input/InputManager';
 import { HUD } from './ui/HUD';
 
 function bootstrap(): void {
@@ -14,18 +17,56 @@ function bootstrap(): void {
   const lunarScene = createLunarScene();
   const regolithMat = createRegolithMaterial(lunarScene.sunLight);
   const terrainManager = new TerrainManager(lunarScene.scene, regolithMat);
-  const flyCamera = new FlyCamera(canvas, window.innerWidth / window.innerHeight);
-  const hud = new HUD();
 
-  // Initial spawn at Shackleton Crater rim crest
+  // Character & Cameras
   const startX = 0;
   const startZ = 0;
-  const startGroundY = sampleLunarElevation(startX, startZ);
-  flyCamera.camera.position.set(startX, startGroundY + 25, startZ);
-  flyCamera.camera.lookAt(0, startGroundY + 20, -500);
+  const character = new EvaCharacterController(startX, startZ);
+  const astronautMesh = createAstronautMesh();
+  lunarScene.scene.add(astronautMesh.group);
 
-  // Initial terrain build around spawn
-  terrainManager.update(startX, startZ);
+  const aspect = window.innerWidth / window.innerHeight;
+  const thirdPersonCamera = new ThirdPersonCamera(canvas, aspect);
+  const flyCamera = new FlyCamera(canvas, aspect);
+
+  let cameraMode: 'EVA_ASTRONAUT' | 'FLY_CAMERA' = 'EVA_ASTRONAUT';
+
+  // Input & HUD
+  const inputManager = new InputManager();
+  const hud = new HUD();
+
+  inputManager.onToggleCameraMode = () => {
+    cameraMode = cameraMode === 'EVA_ASTRONAUT' ? 'FLY_CAMERA' : 'EVA_ASTRONAUT';
+    if (cameraMode === 'FLY_CAMERA') {
+      const state = character.getState();
+      flyCamera.camera.position.set(state.x, state.y + 15, state.z + 20);
+      flyCamera.camera.lookAt(state.x, state.y, state.z);
+    }
+  };
+
+  inputManager.onRespawn = () => {
+    const groundY = sampleLunarElevation(0, 0);
+    character.setState({
+      x: 0,
+      y: groundY,
+      z: 0,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      health: 100,
+      isDead: false,
+      isGrounded: true,
+      lastImpactSpeed: 0,
+      jumpApex: 0,
+    });
+    thirdPersonCamera.reset(0, groundY, 0);
+  };
+
+  // Initial sync
+  const initState = character.getState();
+  astronautMesh.group.position.set(initState.x, initState.y, initState.z);
+  thirdPersonCamera.reset(initState.x, initState.y, initState.z);
+  terrainManager.update(initState.x, initState.z);
 
   let lastTime = performance.now();
   let frameCount = 0;
@@ -35,15 +76,31 @@ function bootstrap(): void {
 
   const gameLoop = new FixedTimestepLoop({
     stepSimulation: (dt) => {
-      flyCamera.update(dt);
-      const pos = flyCamera.getPosition();
-      terrainManager.update(pos.x, pos.z);
+      if (cameraMode === 'EVA_ASTRONAUT') {
+        const inputs = inputManager.getCharacterInputs(thirdPersonCamera.yaw);
+        character.update(inputs, dt);
+        const state = character.getState();
+
+        // Sync astronaut mesh
+        astronautMesh.group.position.set(state.x, state.y, state.z);
+        astronautMesh.group.rotation.y = state.yaw;
+        const hSpeed = Math.sqrt(state.vx * state.vx + state.vz * state.vz);
+        astronautMesh.updateAnimation(state.lopingCycle, state.isGrounded, state.vy, hSpeed);
+
+        thirdPersonCamera.update(state.x, state.y, state.z, dt);
+        terrainManager.update(state.x, state.z);
+      } else {
+        flyCamera.update(dt);
+        const pos = flyCamera.getPosition();
+        terrainManager.update(pos.x, pos.z);
+      }
     },
     render: () => {
       if (typeof regolithMat.userData.updateSun === 'function') {
         regolithMat.userData.updateSun();
       }
-      rendererWrapper.render(lunarScene.scene, flyCamera.camera);
+      const activeCamera = cameraMode === 'EVA_ASTRONAUT' ? thirdPersonCamera.camera : flyCamera.camera;
+      rendererWrapper.render(lunarScene.scene, activeCamera);
     },
   });
 
@@ -51,10 +108,8 @@ function bootstrap(): void {
     const rawDelta = (now - lastTime) / 1000;
     lastTime = now;
 
-    // Fixed timestep update + render
     gameLoop.update(rawDelta);
 
-    // Telemetry & metrics update
     frameCount++;
     perfTimer += rawDelta;
     if (perfTimer >= 0.25) {
@@ -63,17 +118,22 @@ function bootstrap(): void {
       frameCount = 0;
       perfTimer = 0;
 
-      const pos = flyCamera.getPosition();
-      const currentGroundY = sampleLunarElevation(pos.x, pos.z);
-      hud.update(
-        pos.x,
-        pos.y,
-        pos.z,
-        currentGroundY,
+      const state = character.getState();
+      const currentGroundY = sampleLunarElevation(state.x, state.z);
+      hud.update({
+        x: state.x,
+        y: state.y,
+        z: state.z,
+        groundY: currentGroundY,
         fps,
         frameTimeMs,
-        rendererWrapper.getMetrics()
-      );
+        metrics: rendererWrapper.getMetrics(),
+        health: state.health,
+        isDead: state.isDead,
+        jumpApex: state.jumpApex,
+        lastImpactSpeed: state.lastImpactSpeed,
+        mode: cameraMode,
+      });
     }
 
     requestAnimationFrame(frame);

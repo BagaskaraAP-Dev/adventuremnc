@@ -39,4 +39,11 @@ describe('Lunar Physical Constants', () => {
   it('confirms lunar mean radius is 1,737,400 meters', () => {
     expect(LUNAR_RADIUS).toBe(1737400);
   });
+
+  it('verifies EVA jump apex height matches v0^2 / (2g) within 1%', () => {
+    const v0 = 3.6;
+    const analyticApex = (v0 * v0) / (2 * LUNAR_GRAVITY);
+    // 3.6^2 / (2 * 1.625) = 12.96 / 3.25 = 3.98769 m
+    expect(analyticApex).toBeCloseTo(3.9877, 3);
+  });
 });

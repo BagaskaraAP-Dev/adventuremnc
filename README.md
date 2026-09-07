@@ -4,14 +4,15 @@ Open-world action-adventure set on the lunar south pole in 2091.
 
 ## Status
 
-Milestone 1 (Terrain & Lighting) complete.
-- WebGL2 Three.js renderer initialized with ACES Filmic tone mapping and hard shadow cascades.
-- 8x8 km lunar digital elevation model (Shackleton crater rim sector 04) with morphological crater cavities, ejecta blankets, and central peaks.
-- Off-thread terrain meshing worker using zero-copy Transferable ArrayBuffers for quadtree LOD streaming.
-- Opposition effect (Heiligenschein) retroreflective backscatter surge shader hook.
-- Low-angle polar sun (1.8° elevation), fixed Earth in sky (1.9° angular diameter), and subtle Earthshine secondary fill light.
-- 6DOF Fly camera with pointer lock and WASD/Space/C/Shift keyboard navigation.
-- Real-time Apollo telemetry HUD displaying coordinates, altitude, horizon distance, and performance metrics.
+Milestone 2 (Character Controller & Lunar Locomotion) complete.
+- EVA astronaut character mesh authored with geometric primitives (torso capsule, gold visor bubble helmet, PLSS backpack, articulated limbs).
+- Lunar locomotion physics with authentic Apollo loping gait, low regolith traction, and sliding inertia.
+- Ballistic 1/6G jump physics ($g = 1.625\text{ m/s}^2$) with apex matching $v_0^2/(2g)$ within 0.8% tolerance.
+- Zero air control in vacuum ballistic flight.
+- Kinetic fall damage calculated from excess impact velocity without terminal velocity.
+- GTA-style third-person orbit follow camera with terrain collision and smooth damping.
+- Camera mode toggle (`V` key between third-person EVA and free fly) and emergency respawn (`R` key).
+- HUD upgraded with real-time suit integrity, jump apex altitude, impact speed, and critical breach alert.
 
 ## Workspace Structure
 

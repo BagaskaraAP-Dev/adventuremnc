@@ -85,6 +85,32 @@ body, html {
   pointer-events: none;
 }
 
+.hud-breach-alert {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(180, 20, 20, 0.88);
+  border: 1px solid #ff4d4d;
+  padding: 16px 28px;
+  text-align: center;
+  border-radius: 2px;
+  pointer-events: auto;
+}
+
+.breach-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+
+.breach-sub {
+  color: #ffcccc;
+  font-size: 11px;
+}
+
 .hud-footer {
   position: absolute;
   bottom: 18px;

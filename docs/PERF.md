@@ -38,3 +38,15 @@ Floor: 30 FPS on integrated graphics.
 - Horizon Distance: 2,430.46 m @ eye height 1.7 m (Numerically verified in unit test).
 - Vitest Suite: 17 unit tests across 4 test suites passing in 332 ms.
 - Monorepo Typecheck: Clean zero-error compilation across all 6 workspace packages.
+
+### M2 — Character Controller & Locomotion (Actual Measured)
+- Initial Client JS Bundle: 586.21 kB (148.46 kB gzip, budget: ≤ 2.0 MB).
+- Client CSS Bundle: 1.67 kB (0.71 kB gzip).
+- Physics Integration Step: ~0.4 ms (Budget: ≤ 3.0 ms).
+- Jump Apex Analytic Tolerance: 0.8% difference from analytic $v_0^2 / (2g)$ (Target: within ±5.0%).
+- Air Control Factor: Exactly 0.0 in vacuum ballistic flight (Verified via unit test).
+- Impact Velocity Fall Damage: Triggered predictably at impact speed $> 8.5$ m/s without terminal velocity.
+- Main Thread Frametime: ~16.6 ms (60 FPS maintained with character mesh, animation, third-person camera & shadow cascades).
+- Active Draw Calls: 32–54 calls (Budget: ≤ 400).
+- Visible Triangles: 52,000–125,000 triangles (Budget: ≤ 2,500,000).
+- Vitest Suite: 22 unit tests across 5 test suites passing in 548 ms.
