@@ -158,11 +158,12 @@ function bootstrap(): void {
           wheelSpinAngle
         );
 
-        // Mount astronaut on driver seat facing forward along rover heading
+        // Mount astronaut on driver seat with full 3D transform (position + quaternion pitch/roll/yaw)
         const seatPos = new THREE.Vector3();
-        roverMesh.getDriverSeatPosition(seatPos);
+        const seatQuat = new THREE.Quaternion();
+        roverMesh.getDriverSeatTransform(seatPos, seatQuat);
         astronautMesh.group.position.copy(seatPos);
-        astronautMesh.group.rotation.set(0, rState.yaw + Math.PI, 0, 'YXZ');
+        astronautMesh.group.quaternion.copy(seatQuat);
 
         // Emit ballistic dust particles from rear wheels
         if (Math.abs(rState.speed) > 0.6) {

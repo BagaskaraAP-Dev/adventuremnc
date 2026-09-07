@@ -68,34 +68,56 @@ export function createAstronautMesh(): AstronautMeshInstance {
   plss.castShadow = true;
   bodyGroup.add(plss);
 
-  // 4. Limbs
-  // Legs
-  const legGeo = new THREE.CylinderGeometry(0.12, 0.14, 0.68, 12);
-  const bootGeo = new THREE.BoxGeometry(0.2, 0.16, 0.32);
+  // 4. Limbs (Articulated hips and knees for natural gait and seated buggy posture)
+  const thighGeo = new THREE.CylinderGeometry(0.125, 0.11, 0.35, 12);
+  const shinGeo = new THREE.CylinderGeometry(0.11, 0.09, 0.34, 12);
+  const bootGeo = new THREE.BoxGeometry(0.20, 0.14, 0.30);
 
-  const leftLeg = new THREE.Group();
-  leftLeg.position.set(-0.18, 0.7, 0);
-  const leftLegMesh = new THREE.Mesh(legGeo, suitMaterial);
-  leftLegMesh.position.y = -0.34;
-  leftLegMesh.castShadow = true;
-  leftLeg.add(leftLegMesh);
+  // Left Leg (Hip -> Thigh -> Knee -> Shin -> Boot)
+  const leftHip = new THREE.Group();
+  leftHip.position.set(-0.18, 0.70, 0);
+  const leftThigh = new THREE.Mesh(thighGeo, suitMaterial);
+  leftThigh.position.y = -0.175;
+  leftThigh.castShadow = true;
+  leftHip.add(leftThigh);
+
+  const leftKnee = new THREE.Group();
+  leftKnee.position.set(0, -0.35, 0);
+  const leftShin = new THREE.Mesh(shinGeo, suitMaterial);
+  leftShin.position.y = -0.17;
+  leftShin.castShadow = true;
+  leftKnee.add(leftShin);
+
   const leftBoot = new THREE.Mesh(bootGeo, jointMaterial);
-  leftBoot.position.set(0, -0.68, 0.06);
+  leftBoot.position.set(0, -0.34, 0.05);
   leftBoot.castShadow = true;
-  leftLeg.add(leftBoot);
-  bodyGroup.add(leftLeg);
+  leftKnee.add(leftBoot);
 
-  const rightLeg = new THREE.Group();
-  rightLeg.position.set(0.18, 0.7, 0);
-  const rightLegMesh = new THREE.Mesh(legGeo, suitMaterial);
-  rightLegMesh.position.y = -0.34;
-  rightLegMesh.castShadow = true;
-  rightLeg.add(rightLegMesh);
+  leftHip.add(leftKnee);
+  bodyGroup.add(leftHip);
+
+  // Right Leg (Hip -> Thigh -> Knee -> Shin -> Boot)
+  const rightHip = new THREE.Group();
+  rightHip.position.set(0.18, 0.70, 0);
+  const rightThigh = new THREE.Mesh(thighGeo, suitMaterial);
+  rightThigh.position.y = -0.175;
+  rightThigh.castShadow = true;
+  rightHip.add(rightThigh);
+
+  const rightKnee = new THREE.Group();
+  rightKnee.position.set(0, -0.35, 0);
+  const rightShin = new THREE.Mesh(shinGeo, suitMaterial);
+  rightShin.position.y = -0.17;
+  rightShin.castShadow = true;
+  rightKnee.add(rightShin);
+
   const rightBoot = new THREE.Mesh(bootGeo, jointMaterial);
-  rightBoot.position.set(0, -0.68, 0.06);
+  rightBoot.position.set(0, -0.34, 0.05);
   rightBoot.castShadow = true;
-  rightLeg.add(rightBoot);
-  bodyGroup.add(rightLeg);
+  rightKnee.add(rightBoot);
+
+  rightHip.add(rightKnee);
+  bodyGroup.add(rightHip);
 
   // Arms
   const armGeo = new THREE.CylinderGeometry(0.1, 0.09, 0.55, 12);
@@ -119,14 +141,30 @@ export function createAstronautMesh(): AstronautMeshInstance {
   const setSeatedPose = (seated: boolean) => {
     isSeated = seated;
     if (seated) {
-      bodyGroup.position.y = 0;
-      bodyGroup.rotation.x = 0;
-      // Legs bent forward at hips in rover seated position
-      leftLeg.rotation.x = 1.35;
-      rightLeg.rotation.x = 1.35;
-      // Arms forward on rover steering controller
-      leftArm.rotation.x = 0.8;
-      rightArm.rotation.x = 0.8;
+      // Lower body group so pelvis/butt sits directly on the bucket cushion
+      bodyGroup.position.set(0, -0.68, 0.06);
+      bodyGroup.rotation.set(-0.08, 0, 0); // Comfortable recline against seat backrest
+
+      // Thighs extend forward horizontally over cushion
+      leftHip.rotation.set(1.48, 0, 0);
+      rightHip.rotation.set(1.48, 0, 0);
+
+      // Knees bend down vertically to rest boots squarely on the cockpit floor
+      leftKnee.rotation.set(-1.45, 0, 0);
+      rightKnee.rotation.set(-1.45, 0, 0);
+
+      // Hands grip central T-handle steering console
+      leftArm.rotation.set(0.72, 0, -0.22);
+      rightArm.rotation.set(0.72, 0, 0.22);
+    } else {
+      bodyGroup.position.set(0, 0, 0);
+      bodyGroup.rotation.set(0, 0, 0);
+      leftHip.rotation.set(0, 0, 0);
+      rightHip.rotation.set(0, 0, 0);
+      leftKnee.rotation.set(0, 0, 0);
+      rightKnee.rotation.set(0, 0, 0);
+      leftArm.rotation.set(0, 0, 0);
+      rightArm.rotation.set(0, 0, 0);
     }
   };
 
@@ -135,29 +173,37 @@ export function createAstronautMesh(): AstronautMeshInstance {
 
     if (isGrounded) {
       if (speed > 0.1) {
-        // Apollo Loping Bounding Gait: vertical hopping bob + leg swing
+        // Apollo Loping Bounding Gait: vertical hopping bob + leg swing with knee flexion
         const bob = Math.abs(Math.sin(lopingCycle)) * 0.14;
         bodyGroup.position.y = bob;
 
         const legAngle = Math.sin(lopingCycle) * 0.55;
-        leftLeg.rotation.x = legAngle;
-        rightLeg.rotation.x = -legAngle;
+        leftHip.rotation.x = legAngle;
+        rightHip.rotation.x = -legAngle;
+
+        // Subtle knee flex when swinging leg backward
+        leftKnee.rotation.x = legAngle < 0 ? legAngle * 0.4 : 0;
+        rightKnee.rotation.x = -legAngle < 0 ? -legAngle * 0.4 : 0;
 
         leftArm.rotation.x = -legAngle * 0.75;
         rightArm.rotation.x = legAngle * 0.75;
       } else {
         // Idle
         bodyGroup.position.y = 0;
-        leftLeg.rotation.x = 0;
-        rightLeg.rotation.x = 0;
-        leftArm.rotation.x = 0;
-        rightArm.rotation.x = 0;
+        leftHip.rotation.set(0, 0, 0);
+        rightHip.rotation.set(0, 0, 0);
+        leftKnee.rotation.set(0, 0, 0);
+        rightKnee.rotation.set(0, 0, 0);
+        leftArm.rotation.set(0, 0, 0);
+        rightArm.rotation.set(0, 0, 0);
       }
     } else {
       // In air flight: legs flexed, arms stabilized
       bodyGroup.position.y = 0.05;
-      leftLeg.rotation.x = 0.3;
-      rightLeg.rotation.x = 0.15;
+      leftHip.rotation.x = 0.35;
+      rightHip.rotation.x = 0.2;
+      leftKnee.rotation.x = -0.3;
+      rightKnee.rotation.x = -0.2;
       leftArm.rotation.x = -0.4;
       rightArm.rotation.x = -0.4;
 

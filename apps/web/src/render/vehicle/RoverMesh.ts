@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 export interface RoverMeshInstance {
   group: THREE.Group;
+  getDriverSeatTransform: (targetPos: THREE.Vector3, targetQuat: THREE.Quaternion) => void;
   getDriverSeatPosition: (target: THREE.Vector3) => void;
   updatePose: (
     x: number,
@@ -62,15 +63,15 @@ export function createRoverMesh(): RoverMeshInstance {
   mainPlatform.receiveShadow = true;
   bodyGroup.add(mainPlatform);
 
-  // Roll cage tubular frame
-  const cageGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.2, 8);
+  // Roll cage tubular frame with ample helmet clearance
+  const cageGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.45, 8);
   const leftPillar = new THREE.Mesh(cageGeo, frameMaterial);
-  leftPillar.position.set(-0.7, 0.65, 0.1);
+  leftPillar.position.set(-0.7, 0.8, 0.1);
   leftPillar.castShadow = true;
   bodyGroup.add(leftPillar);
 
   const rightPillar = new THREE.Mesh(cageGeo, frameMaterial);
-  rightPillar.position.set(0.7, 0.65, 0.1);
+  rightPillar.position.set(0.7, 0.8, 0.1);
   rightPillar.castShadow = true;
   bodyGroup.add(rightPillar);
 
@@ -78,20 +79,57 @@ export function createRoverMesh(): RoverMeshInstance {
     new THREE.BoxGeometry(1.48, 0.08, 0.08),
     frameMaterial
   );
-  topBar.position.set(0, 1.25, 0.1);
+  topBar.position.set(0, 1.5, 0.1);
   bodyGroup.add(topBar);
 
-  // Seats (Driver and Passenger)
-  const seatGeo = new THREE.BoxGeometry(0.5, 0.55, 0.45);
-  const driverSeat = new THREE.Mesh(seatGeo, frameMaterial);
-  driverSeat.position.set(-0.35, 0.35, 0.05);
-  driverSeat.castShadow = true;
-  bodyGroup.add(driverSeat);
+  // Ergonomic Apollo LRV Bucket Seats (cushion + backrest)
+  const seatBaseGeo = new THREE.BoxGeometry(0.48, 0.08, 0.44);
+  const seatBackGeo = new THREE.BoxGeometry(0.48, 0.52, 0.08);
 
-  const passSeat = new THREE.Mesh(seatGeo, frameMaterial);
-  passSeat.position.set(0.35, 0.35, 0.05);
-  passSeat.castShadow = true;
-  bodyGroup.add(passSeat);
+  // Driver Seat
+  const driverBase = new THREE.Mesh(seatBaseGeo, frameMaterial);
+  driverBase.position.set(-0.35, 0.18, 0.02);
+  driverBase.castShadow = true;
+  bodyGroup.add(driverBase);
+
+  const driverBack = new THREE.Mesh(seatBackGeo, frameMaterial);
+  driverBack.position.set(-0.35, 0.44, 0.22);
+  driverBack.castShadow = true;
+  bodyGroup.add(driverBack);
+
+  // Passenger Seat
+  const passBase = new THREE.Mesh(seatBaseGeo, frameMaterial);
+  passBase.position.set(0.35, 0.18, 0.02);
+  passBase.castShadow = true;
+  bodyGroup.add(passBase);
+
+  const passBack = new THREE.Mesh(seatBackGeo, frameMaterial);
+  passBack.position.set(0.35, 0.44, 0.22);
+  passBack.castShadow = true;
+  bodyGroup.add(passBack);
+
+  // Center T-handle steering console & tiller stick
+  const consoleGeo = new THREE.BoxGeometry(0.14, 0.42, 0.22);
+  const consoleMesh = new THREE.Mesh(consoleGeo, frameMaterial);
+  consoleMesh.position.set(0, 0.32, -0.32);
+  bodyGroup.add(consoleMesh);
+
+  const stickGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.26, 8);
+  const stickMesh = new THREE.Mesh(stickGeo, chassisMaterial);
+  stickMesh.position.set(-0.06, 0.52, -0.32);
+  stickMesh.rotation.x = -0.3;
+  bodyGroup.add(stickMesh);
+
+  const handleGeo = new THREE.BoxGeometry(0.18, 0.03, 0.04);
+  const handleMesh = new THREE.Mesh(handleGeo, frameMaterial);
+  handleMesh.position.set(-0.06, 0.63, -0.36);
+  bodyGroup.add(handleMesh);
+
+  // Driver seat mount anchor: local point where the astronaut's butt sits
+  const driverSeatMount = new THREE.Group();
+  driverSeatMount.position.set(-0.35, 0.22, 0.02);
+  driverSeatMount.rotation.set(0, Math.PI, 0); // Face forward towards -Z!
+  bodyGroup.add(driverSeatMount);
 
   // High gain dish antenna
   const antennaPole = new THREE.Mesh(
@@ -238,13 +276,18 @@ export function createRoverMesh(): RoverMeshInstance {
     rr.wheelSpinGroup.rotation.x = wheelSpin;
   };
 
+  const getDriverSeatTransform = (targetPos: THREE.Vector3, targetQuat: THREE.Quaternion) => {
+    driverSeatMount.getWorldPosition(targetPos);
+    driverSeatMount.getWorldQuaternion(targetQuat);
+  };
+
   const getDriverSeatPosition = (target: THREE.Vector3) => {
-    driverSeat.getWorldPosition(target);
-    target.y -= 0.3;
+    driverSeatMount.getWorldPosition(target);
   };
 
   return {
     group,
+    getDriverSeatTransform,
     getDriverSeatPosition,
     updatePose,
   };
