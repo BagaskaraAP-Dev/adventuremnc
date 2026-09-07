@@ -11,6 +11,9 @@
 | `zod` | `3.24.2` | Runtime validation for shared schemas between client and API without code duplication. |
 | `vite` | `6.2.0` | High-performance client bundler with fast HMR and optimized production asset hashing. |
 
+| `three` | `0.185.1` | Stable WebGL2 renderer standard for modern 3D browser games with tight memory control. |
+| `@types/three` | `0.185.0` | Exact TypeScript type definitions matching Three.js WebGL2 interface. |
+
 ## Core Architectural Decisions
 
 ### 1. Day-Night Cycle Compression
@@ -21,7 +24,12 @@
 ### 2. Deployment Architecture (Path A: Vercel)
 - Rationale: For v1.0 single-player milestone, Vercel static edge distribution provides zero-cost global CDN caching for immutable asset bundles and sub-second cold starts for stateless save synchronization. Transport layer in `net/` is isolated to allow migration to stateful WebSockets if multiplayer (M9) is scoped later.
 
-## Known Gaps (M0)
-- Gameplay loop is uninstantiated (by design for M0 foundation).
-- Terrain heightmap data pipeline not yet connected (scheduled for M1).
-- Rapier physics engine not yet wired into worker (scheduled for M2).
+### 3. Off-Thread Terrain Meshing (Web Worker)
+- Rationale: Evaluating morphological elevation equations (crater cavity, central peaks, exponential ejecta profiles) for 32x32 vertex grids per chunk on the main thread induces noticeable micro-hitches (> 10ms) during rapid camera movements. Shifting meshing and normal computation to a dedicated Web Worker using zero-copy Transferable ArrayBuffers maintains a silky main-thread frametime (<= 6 ms).
+
+### 4. Lunar Photometry & Opposition Effect
+- Rationale: Apollo photographs reveal that regolith lacks diffuse Lambertian behavior and displays a dramatic brightness surge (Heiligenschein) at the anti-solar point. We injected an opposition surge term directly into the PBR fragment shader (`onBeforeCompile`) evaluating phase angle $g = \arccos(-\mathbf{v} \cdot \mathbf{l})$, replicating authentic Hasselblad camera exposure with dark charcoal albedo (~0.12) and zero atmospheric scattering/fog.
+
+## Known Gaps (M1)
+- Character controller and Rapier physics worker integration (scheduled for M2).
+- Procedural rock and boulder instancing pass (scheduled for M2/M3).

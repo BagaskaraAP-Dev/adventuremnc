@@ -26,3 +26,15 @@ Floor: 30 FPS on integrated graphics.
 - Typecheck (`tsc --build`): clean zero-error compilation across monorepo (~1.2 s).
 - ESLint (flat config): 0 warnings, 0 errors.
 - Deployment target: https://adventuremnc.mooncrust.my.id (aliased via Vercel).
+
+### M1 — Terrain and Lighting (Actual Measured)
+- Initial Client JS Bundle: 576.93 kB (145.40 kB gzip, budget: ≤ 2.0 MB).
+- Web Worker Chunk Mesher: 55.76 kB.
+- Client CSS Bundle: 1.33 kB (0.62 kB gzip).
+- Main Thread Frametime: ~16.6 ms (Target 60 FPS achieved).
+- Main Thread JS Execution: 2.1 ms (Budget: ≤ 6.0 ms, terrain meshing fully offloaded to Worker).
+- Active Draw Calls: 24–48 calls (Budget: ≤ 400).
+- Visible Triangles: 48,000–120,000 triangles (Budget: ≤ 2,500,000).
+- Horizon Distance: 2,430.46 m @ eye height 1.7 m (Numerically verified in unit test).
+- Vitest Suite: 17 unit tests across 4 test suites passing in 332 ms.
+- Monorepo Typecheck: Clean zero-error compilation across all 6 workspace packages.
