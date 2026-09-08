@@ -30,6 +30,13 @@ export interface HabitatInstance {
     nextX: number,
     nextZ: number
   ) => { x: number; z: number };
+  constrainRoverPosition: (
+    currX: number,
+    currZ: number,
+    nextX: number,
+    nextZ: number,
+    roverRadius?: number
+  ) => { x: number; z: number; hit: boolean; normalX?: number; normalZ?: number };
   getFloorHeight: (x: number, z: number) => number | null;
   updateAnimation: (time: number, dt: number) => void;
 }
@@ -1189,38 +1196,234 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
       return null;
     },
 
-    constrainPosition: (currX: number, currZ: number, nextX: number, nextZ: number) => {
-      const dx = nextX - posX;
-      const dz = nextZ - posZ;
-      const dist = Math.hypot(dx, dz);
+    constrainRoverPosition: (
+      currX: number,
+      currZ: number,
+      nextX: number,
+      nextZ: number,
+      roverRadius = 1.3
+    ) => {
+      let hit = false;
+      let normalX = 0;
+      let normalZ = 0;
 
-      const vestibuleEnd = 8.2 + airlockLength / 2;
-      const rampEnd = vestibuleEnd + rampLength;
-      const inCorridor = Math.abs(dx) <= airlockWidth / 2 - 0.2 && dz >= 5.0 && dz <= rampEnd + 0.5;
+      // 1. Habitat Main Cylindrical Hull & Heavy Foundation Plinth
+      // Plinth radius is habRadius + 1.5 = 8.1m. With rover radius: 9.4m minimum distance.
+      const minHabDist = habRadius + 1.5 + roverRadius; // 9.4m
+      const dxHab = nextX - posX;
+      const dzHab = nextZ - posZ;
+      const distHab = Math.hypot(dxHab, dzHab);
 
-      const maxInnerRadius = habRadius - 0.3;
-      if (dist > maxInnerRadius && !inCorridor) {
-        const prevDx = currX - posX;
-        const prevDz = currZ - posZ;
-        const prevDist = Math.hypot(prevDx, prevDz);
+      if (distHab < minHabDist) {
+        hit = true;
+        const inv = 1.0 / (distHab || 0.001);
+        normalX = dxHab * inv;
+        normalZ = dzHab * inv;
+        nextX = posX + normalX * minHabDist;
+        nextZ = posZ + normalZ * minHabDist;
+      }
 
-        if (prevDist <= maxInnerRadius + 0.2) {
-          const angle = Math.atan2(dx, dz);
-          return {
-            x: posX + Math.sin(angle) * maxInnerRadius,
-            z: posZ + Math.cos(angle) * maxInnerRadius,
-          };
+      // 2. Airlock Vestibule & Entrance Ramp Bounding Box (Impassable for vehicles)
+      const boxMinX = posX - airlockWidth / 2 - roverRadius - 0.2; // ~ -25.1
+      const boxMaxX = posX + airlockWidth / 2 + roverRadius + 0.2; // ~ -18.9
+      const boxMinZ = posZ + 5.0 - roverRadius;                   // ~ -14.3
+      const boxMaxZ = posZ + 8.2 + airlockLength / 2 + rampLength + roverRadius; // ~ -4.1
+
+      if (nextX > boxMinX && nextX < boxMaxX && nextZ > boxMinZ && nextZ < boxMaxZ) {
+        hit = true;
+        const dL = Math.abs(nextX - boxMinX);
+        const dR = Math.abs(boxMaxX - nextX);
+        const dF = Math.abs(boxMaxZ - nextZ);
+        const minEdge = Math.min(dL, dR, dF);
+
+        if (minEdge === dL) {
+          nextX = boxMinX;
+          normalX = -1;
+          normalZ = 0;
+        } else if (minEdge === dR) {
+          nextX = boxMaxX;
+          normalX = 1;
+          normalZ = 0;
+        } else {
+          nextZ = boxMaxZ;
+          normalX = 0;
+          normalZ = 1;
         }
       }
 
-      if (dz >= 6.0 && dz <= vestibuleEnd) {
-        const maxSide = airlockWidth / 2 - 0.35;
-        if (Math.abs(dx) > maxSide) {
-          return {
-            x: posX + Math.sign(dx) * maxSide,
-            z: nextZ,
-          };
+      // 3. Rover Bay 01 Charging Tower Obstacle (at X: -17.8, Z: -4.5)
+      const towerX = -17.8;
+      const towerZ = -4.5;
+      const towerMinDist = 0.8 + roverRadius;
+      const dxTower = nextX - towerX;
+      const dzTower = nextZ - towerZ;
+      const distTower = Math.hypot(dxTower, dzTower);
+
+      if (distTower < towerMinDist) {
+        hit = true;
+        const inv = 1.0 / (distTower || 0.001);
+        normalX = dxTower * inv;
+        normalZ = dzTower * inv;
+        nextX = towerX + normalX * towerMinDist;
+        nextZ = towerZ + normalZ * towerMinDist;
+      }
+
+      return { x: nextX, z: nextZ, hit, normalX, normalZ };
+    },
+
+    constrainPosition: (currX: number, currZ: number, nextX: number, nextZ: number) => {
+      const pRadius = 0.35; // astronaut physical suit radius
+
+      const vestibuleEnd = 8.2 + airlockLength / 2; // 10.0 (world z = -8.0)
+      const rampEnd = vestibuleEnd + rampLength; // 12.6 (world z = -5.4)
+
+      const currDx = currX - posX;
+      const currDz = currZ - posZ;
+      const currDist = Math.hypot(currDx, currDz);
+
+      const isCurrInsideMainRoom = currDist <= habRadius - 0.2;
+      const isCurrInVestibule =
+        Math.abs(currDx) <= airlockWidth / 2 && currDz >= 5.2 && currDz <= vestibuleEnd + 0.1;
+      const isCurrOnRamp =
+        Math.abs(currDx) <= rampWidth / 2 + 0.35 && currDz > vestibuleEnd && currDz <= rampEnd + 0.2;
+
+      // -----------------------------------------------------------
+      // A. Astronaut is INSIDE the main habitat room
+      // -----------------------------------------------------------
+      if (isCurrInsideMainRoom) {
+        const nextDx = nextX - posX;
+        const nextDz = nextZ - posZ;
+        const nextDist = Math.hypot(nextDx, nextDz);
+
+        // 1. Outer Wall: Inner padded cylinder is at habRadius - 0.15 = 6.45m
+        const maxWalkableRadius = habRadius - 0.15 - pRadius; // ~6.10m
+        const isExitingToAirlock = Math.abs(nextDx) <= 1.2 && nextDz >= 5.0;
+
+        if (nextDist > maxWalkableRadius && !isExitingToAirlock) {
+          const angle = Math.atan2(nextDx, nextDz);
+          nextX = posX + Math.sin(angle) * maxWalkableRadius;
+          nextZ = posZ + Math.cos(angle) * maxWalkableRadius;
         }
+
+        // 2. Center Holographic Mission Table (Pedestal collision radius 1.4m)
+        const tableDist = Math.hypot(nextX - posX, nextZ - posZ);
+        const minTableRadius = 1.35 + pRadius; // 1.70m
+        if (tableDist < minTableRadius) {
+          const angle = Math.atan2(nextX - posX, nextZ - posZ);
+          nextX = posX + Math.sin(angle) * minTableRadius;
+          nextZ = posZ + Math.cos(angle) * minTableRadius;
+        }
+
+        // 3. West Geology Lab Bench (posX - 4.2 = -26.2, posZ - 0.5 = -18.5)
+        const benchMinX = posX - 4.2 - 0.7 - pRadius;
+        const benchMaxX = posX - 4.2 + 0.7 + pRadius;
+        const benchMinZ = posZ - 0.5 - 1.7 - pRadius;
+        const benchMaxZ = posZ - 0.5 + 1.7 + pRadius;
+        if (nextX > benchMinX && nextX < benchMaxX && nextZ > benchMinZ && nextZ < benchMaxZ) {
+          const dL = Math.abs(nextX - benchMinX);
+          const dR = Math.abs(benchMaxX - nextX);
+          const dN = Math.abs(nextZ - benchMinZ);
+          const dS = Math.abs(benchMaxZ - nextZ);
+          const m = Math.min(dL, dR, dN, dS);
+          if (m === dL) nextX = benchMinX;
+          else if (m === dR) nextX = benchMaxX;
+          else if (m === dN) nextZ = benchMinZ;
+          else nextZ = benchMaxZ;
+        }
+
+        // 4. East Hydroponics Greenhouse Racks (posX + 4.2 = -17.8, posZ - 0.5 = -18.5)
+        const rackMinX = posX + 4.2 - 0.6 - pRadius;
+        const rackMaxX = posX + 4.2 + 0.6 + pRadius;
+        const rackMinZ = posZ - 0.5 - 1.7 - pRadius;
+        const rackMaxZ = posZ - 0.5 + 1.7 + pRadius;
+        if (nextX > rackMinX && nextX < rackMaxX && nextZ > rackMinZ && nextZ < rackMaxZ) {
+          const dL = Math.abs(nextX - rackMinX);
+          const dR = Math.abs(rackMaxX - nextX);
+          const dN = Math.abs(nextZ - rackMinZ);
+          const dS = Math.abs(rackMaxZ - nextZ);
+          const m = Math.min(dL, dR, dN, dS);
+          if (m === dL) nextX = rackMinX;
+          else if (m === dR) nextX = rackMaxX;
+          else if (m === dN) nextZ = rackMinZ;
+          else nextZ = rackMaxZ;
+        }
+
+        // 5. North Crew Berths & Lockers (posX: -22, posZ - 4.5 = -22.5)
+        const berthMinX = posX - 1.6 - pRadius;
+        const berthMaxX = posX + 1.6 + pRadius;
+        const berthMinZ = posZ - 4.5 - 0.8 - pRadius;
+        const berthMaxZ = posZ - 4.5 + 0.8 + pRadius;
+        if (nextX > berthMinX && nextX < berthMaxX && nextZ > berthMinZ && nextZ < berthMaxZ) {
+          const dL = Math.abs(nextX - berthMinX);
+          const dR = Math.abs(benchMaxX - nextX);
+          const dN = Math.abs(nextZ - berthMinZ);
+          const dS = Math.abs(berthMaxZ - nextZ);
+          const m = Math.min(dL, dR, dN, dS);
+          if (m === dL) nextX = berthMinX;
+          else if (m === dR) nextX = berthMaxX;
+          else if (m === dN) nextZ = berthMinZ;
+          else nextZ = berthMaxZ;
+        }
+
+        return { x: nextX, z: nextZ };
+      }
+
+      // -----------------------------------------------------------
+      // B. Astronaut is INSIDE the Airlock Vestibule
+      // -----------------------------------------------------------
+      if (isCurrInVestibule) {
+        // Constrained between titanium side walls
+        const maxSide = airlockWidth / 2 - 0.25 - pRadius; // ~1.0m
+        nextX = Math.max(posX - maxSide, Math.min(posX + maxSide, nextX));
+
+        // When moving out toward ramp at vestibuleEnd:
+        // Doorway opening is on right side (x between posX - 0.2 and posX + maxSide)
+        // Left side has the heavy pressure door (x < posX - 0.2)
+        if (nextZ > posZ + vestibuleEnd && nextX < posX - 0.2) {
+          nextZ = posZ + vestibuleEnd;
+        }
+
+        return { x: nextX, z: nextZ };
+      }
+
+      // -----------------------------------------------------------
+      // C. Astronaut is on the ENTRANCE RAMP
+      // -----------------------------------------------------------
+      if (isCurrOnRamp) {
+        // Constrained between ramp handrails
+        const maxRampSide = rampWidth / 2 - pRadius;
+        nextX = Math.max(posX - maxRampSide, Math.min(posX + maxRampSide, nextX));
+        return { x: nextX, z: nextZ };
+      }
+
+      // -----------------------------------------------------------
+      // D. Astronaut is OUTSIDE on lunar regolith
+      // -----------------------------------------------------------
+      const nextDx = nextX - posX;
+      const nextDz = nextZ - posZ;
+      const nextDist = Math.hypot(nextDx, nextDz);
+      const minOuterRadius = habRadius + 0.1 + pRadius; // 7.05m
+
+      // Can only enter via the entrance ramp (dz >= vestibuleEnd - 0.2 && |dx| <= rampWidth/2)
+      const isEnteringRamp =
+        Math.abs(nextDx) <= rampWidth / 2 + 0.2 && nextDz >= vestibuleEnd - 0.1;
+
+      // Solid exterior cylindrical hull (cannot walk through outer walls!)
+      if (nextDist < minOuterRadius && !isEnteringRamp) {
+        const angle = Math.atan2(nextDx, nextDz);
+        nextX = posX + Math.sin(angle) * minOuterRadius;
+        nextZ = posZ + Math.cos(angle) * minOuterRadius;
+      }
+
+      // Solid airlock exterior side walls (cannot walk through from outside!)
+      const alMinX = posX - airlockWidth / 2 - 0.15 - pRadius;
+      const alMaxX = posX + airlockWidth / 2 + 0.15 + pRadius;
+      const alMinZ = posZ + 5.2 - pRadius;
+      const alMaxZ = posZ + vestibuleEnd + pRadius;
+
+      if (!isEnteringRamp && nextX > alMinX && nextX < alMaxX && nextZ > alMinZ && nextZ < alMaxZ) {
+        if (currX < posX) nextX = alMinX;
+        else nextX = alMaxX;
       }
 
       return { x: nextX, z: nextZ };

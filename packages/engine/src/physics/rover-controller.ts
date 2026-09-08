@@ -16,6 +16,16 @@ export interface RoverInputs {
   handbrake: boolean;
 }
 
+export interface RoverEnvironmentalContext {
+  constrainPosition?: (
+    currX: number,
+    currZ: number,
+    nextX: number,
+    nextZ: number,
+    radius: number
+  ) => { x: number; z: number; hit?: boolean; normalX?: number; normalZ?: number };
+}
+
 export interface RoverWheelState {
   worldX: number;
   worldY: number;
@@ -94,7 +104,7 @@ export class RoverController {
     return Math.sqrt(dx * dx + dz * dz) <= ROVER_INTERACT_RADIUS;
   }
 
-  public update(inputs: RoverInputs, dt: number): void {
+  public update(inputs: RoverInputs, dt: number, env?: RoverEnvironmentalContext): void {
     if (this.state.isRolledOver) return;
 
     // 1. Steering integration
@@ -206,9 +216,28 @@ export class RoverController {
       }
     }
 
-    // 4. Position Integration
-    this.state.x += this.state.vx * dt;
-    this.state.z += this.state.vz * dt;
+    // 4. Position Integration & Solid Environmental Collision ("keras")
+    const nextX = this.state.x + this.state.vx * dt;
+    const nextZ = this.state.z + this.state.vz * dt;
+
+    if (env?.constrainPosition) {
+      const c = env.constrainPosition(this.state.x, this.state.z, nextX, nextZ, 1.25);
+      this.state.x = c.x;
+      this.state.z = c.z;
+
+      if (c.hit && c.normalX !== undefined && c.normalZ !== undefined) {
+        const dot = this.state.vx * c.normalX + this.state.vz * c.normalZ;
+        if (dot < 0) {
+          // Slide along wall & heavy deceleration
+          this.state.vx -= dot * c.normalX * 1.3;
+          this.state.vz -= dot * c.normalZ * 1.3;
+          this.state.speed *= 0.15;
+        }
+      }
+    } else {
+      this.state.x = nextX;
+      this.state.z = nextZ;
+    }
 
     // Check rollover
     if (Math.abs(this.state.roll) > 1.2 || Math.abs(this.state.pitch) > 1.2) {

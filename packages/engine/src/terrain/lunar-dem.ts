@@ -66,13 +66,30 @@ export function sampleLunarElevation(x: number, z: number): number {
     }
   }
 
-  // 4. Micro-topography (regolith ripple and small boulders, deterministic sine superposition)
-  const microDetail =
-    Math.sin(x * 0.024 + z * 0.018) * 1.8 +
-    Math.cos(x * 0.065 - z * 0.052) * 0.75 +
-    Math.sin(x * 0.14 + z * 0.12) * 0.35;
+  // 4. Realistic Rolling Lunar Waves & Mare Swell Ridges ("gelombang secara rill")
+  // Distance from habitat & rover bay complex (approx x: -19, z: -12)
+  const distBase = Math.hypot(x + 19, z + 12);
+  // Smoothly damp rolling waves right under the base pad (within 13m) so foundation stays rock solid & level
+  const baseDamp = Math.min(1.0, Math.max(0.0, (distBase - 11) / 9));
 
-  return elevation + microDetail;
+  // Multi-directional rolling swells: primary rolling wave (~65m), cross swell (~40m), and rippling dunes (~18m)
+  const waveAngle1 = 0.55;
+  const u1 = x * Math.cos(waveAngle1) + z * Math.sin(waveAngle1);
+  const v1 = -x * Math.sin(waveAngle1) + z * Math.cos(waveAngle1);
+
+  const waveAngle2 = -0.65;
+  const u2 = x * Math.cos(waveAngle2) + z * Math.sin(waveAngle2);
+
+  const rollingWaves =
+    (Math.sin(u1 * 0.095) * 3.2 + Math.cos(v1 * 0.065) * 2.4) +
+    (Math.sin(u2 * 0.15) * 1.5 * Math.cos(u1 * 0.035)) +
+    (Math.sin(x * 0.32 + z * 0.24) * 0.45);
+
+  const microDetail =
+    Math.sin(x * 0.024 + z * 0.018) * 1.2 +
+    Math.cos(x * 0.065 - z * 0.052) * 0.6;
+
+  return elevation + (rollingWaves * baseDamp) + microDetail;
 }
 
 /**

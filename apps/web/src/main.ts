@@ -394,7 +394,10 @@ function bootstrap(): void {
 
       if (gameMode === 'ROVER_DRIVING') {
         const roverInputs = inputManager.getRoverInputs();
-        rover.update(roverInputs, dt);
+        rover.update(roverInputs, dt, {
+          constrainPosition: (currX, currZ, nextX, nextZ, radius) =>
+            habitat.constrainRoverPosition(currX, currZ, nextX, nextZ, radius),
+        });
         const rState = rover.getState();
 
         // Driving inside rover cockpit: Pressurized shelter!
