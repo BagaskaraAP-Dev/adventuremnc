@@ -4,9 +4,11 @@ import { HABITAT_AIRLOCK_RADIUS } from '@adventuremnc/shared';
 import {
   createThermalTileTextures,
   createQuiltedInteriorTextures,
+  createHexFloorTextures,
   createGoldMliTextures,
   createTitaniumPlateTextures,
   createAirlockBulkheadTexture,
+  createDiamondPlateTextures,
 } from '../texture/ProceduralTextures';
 
 export interface HabitatInstance {
@@ -64,54 +66,70 @@ function createHazardStripeTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Procedural hexagonal composite floor plating with glowing accent lines.
+ * Generates a ring geometry with polar UVs so hazard stripes wrap radially without distortion.
  */
-function createHexFloorTexture(): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d')!;
+function createRadialRingGeometry(
+  innerRadius: number,
+  outerRadius: number,
+  segments = 48
+): THREE.BufferGeometry {
+  const geom = new THREE.BufferGeometry();
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
 
-  ctx.fillStyle = '#1c2026';
-  ctx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i <= segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const u = i / segments;
 
-  ctx.strokeStyle = '#2d3748';
-  ctx.lineWidth = 3;
-  const hexRadius = 40;
-  const h = hexRadius * Math.sqrt(3);
+    positions.push(cos * innerRadius, 0, sin * innerRadius);
+    uvs.push(u * 16, 0);
 
-  for (let row = -1; row < 14; row++) {
-    for (let col = -1; col < 10; col++) {
-      const cx = col * hexRadius * 1.5;
-      const cy = row * h + (col % 2 === 0 ? 0 : h / 2);
-
-      ctx.beginPath();
-      for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i;
-        const x = cx + hexRadius * Math.cos(angle);
-        const y = cy + hexRadius * Math.sin(angle);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.stroke();
-    }
+    positions.push(cos * outerRadius, 0, sin * outerRadius);
+    uvs.push(u * 16, 1);
   }
 
-  ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(256, 0);
-  ctx.lineTo(256, 512);
-  ctx.moveTo(0, 256);
-  ctx.lineTo(512, 256);
-  ctx.stroke();
+  for (let i = 0; i < segments; i++) {
+    const a = i * 2;
+    const b = a + 1;
+    const c = (i + 1) * 2;
+    const d = c + 1;
+    indices.push(a, b, c);
+    indices.push(c, b, d);
+  }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(6, 6);
-  return texture;
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+  return geom;
+}
+
+/**
+ * Generates an airtight dome shell section connecting seamlessly between baseRadius and topRadius.
+ */
+function createDomeSectionGeometry(
+  baseRadius: number,
+  topRadius: number,
+  baseY: number,
+  height: number,
+  steps = 16,
+  radialSegments = 32
+): THREE.BufferGeometry {
+  const points: THREE.Vector2[] = [];
+  const ratio = Math.min(0.999, topRadius / baseRadius);
+  const angleMax = Math.acos(ratio);
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const angle = t * angleMax;
+    const r = baseRadius * Math.cos(angle);
+    const y = baseY + height * (Math.sin(angle) / Math.sin(angleMax));
+    points.push(new THREE.Vector2(r, y));
+  }
+  return new THREE.LatheGeometry(points, radialSegments);
 }
 
 /**
@@ -220,29 +238,45 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   // -------------------------------------------------------------
   // High-Definition PBR Procedural Materials
   // -------------------------------------------------------------
-  const thermalTiles = createThermalTileTextures();
-  const quiltedPadding = createQuiltedInteriorTextures();
-  const goldMli = createGoldMliTextures();
-  const titaniumPlate = createTitaniumPlateTextures();
-  const airlockBulkheadTex = createAirlockBulkheadTexture();
-
+  const wallExteriorTiles = createThermalTileTextures(16, 4);
   const habitatExteriorMat = new THREE.MeshStandardMaterial({
-    map: thermalTiles.map,
-    bumpMap: thermalTiles.bumpMap,
+    map: wallExteriorTiles.map,
+    bumpMap: wallExteriorTiles.bumpMap,
     bumpScale: 0.035,
     roughness: 0.42,
     metalness: 0.22,
   });
 
+  const roofExteriorTiles = createThermalTileTextures(16, 3);
+  const roofExteriorMat = new THREE.MeshStandardMaterial({
+    map: roofExteriorTiles.map,
+    bumpMap: roofExteriorTiles.bumpMap,
+    bumpScale: 0.035,
+    roughness: 0.42,
+    metalness: 0.22,
+  });
+
+  const wallInteriorTiles = createQuiltedInteriorTextures(22, 3);
   const interiorPaddedMat = new THREE.MeshStandardMaterial({
-    map: quiltedPadding.map,
-    bumpMap: quiltedPadding.bumpMap,
+    map: wallInteriorTiles.map,
+    bumpMap: wallInteriorTiles.bumpMap,
     bumpScale: 0.05,
     roughness: 0.78,
     metalness: 0.05,
     side: THREE.DoubleSide,
   });
 
+  const ceilingInteriorTiles = createQuiltedInteriorTextures(18, 3);
+  const ceilingInteriorMat = new THREE.MeshStandardMaterial({
+    map: ceilingInteriorTiles.map,
+    bumpMap: ceilingInteriorTiles.bumpMap,
+    bumpScale: 0.045,
+    roughness: 0.8,
+    metalness: 0.05,
+    side: THREE.DoubleSide,
+  });
+
+  const goldMli = createGoldMliTextures(4, 2);
   const goldMliMat = new THREE.MeshStandardMaterial({
     map: goldMli.map,
     bumpMap: goldMli.bumpMap,
@@ -252,6 +286,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     metalness: 0.95,
   });
 
+  const titaniumPlate = createTitaniumPlateTextures(2, 2);
   const darkFrameMat = new THREE.MeshStandardMaterial({
     map: titaniumPlate.map,
     bumpMap: titaniumPlate.bumpMap,
@@ -261,22 +296,31 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     metalness: 0.75,
   });
 
+  const airlockBulkheadTex = createAirlockBulkheadTexture();
   const airlockDoorMat = new THREE.MeshStandardMaterial({
     map: airlockBulkheadTex,
     roughness: 0.45,
     metalness: 0.55,
   });
 
-  const solarCellMat = new THREE.MeshStandardMaterial({
-    color: 0x001830,
-    roughness: 0.2,
-    metalness: 0.9,
+  const hexFloor = createHexFloorTextures(8, 8);
+  const floorMat = new THREE.MeshStandardMaterial({
+    map: hexFloor.map,
+    bumpMap: hexFloor.bumpMap,
+    bumpScale: 0.04,
+    roughnessMap: hexFloor.roughnessMap,
+    roughness: 0.6,
+    metalness: 0.45,
   });
 
-  const floorMat = new THREE.MeshStandardMaterial({
-    map: createHexFloorTexture(),
-    roughness: 0.6,
-    metalness: 0.4,
+  const diamondPlate = createDiamondPlateTextures(3, 4);
+  const rampMat = new THREE.MeshStandardMaterial({
+    map: diamondPlate.map,
+    bumpMap: diamondPlate.bumpMap,
+    bumpScale: 0.035,
+    color: 0x3a424e,
+    roughness: 0.65,
+    metalness: 0.6,
   });
 
   const hazardMat = new THREE.MeshStandardMaterial({
@@ -285,10 +329,16 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     metalness: 0.3,
   });
 
+  const solarCellMat = new THREE.MeshStandardMaterial({
+    color: 0x001830,
+    roughness: 0.2,
+    metalness: 0.9,
+  });
+
   const cupolaGlassMat = new THREE.MeshStandardMaterial({
     color: 0x90e0ef,
-    roughness: 0.1,
-    metalness: 0.8,
+    roughness: 0.08,
+    metalness: 0.85,
     transparent: true,
     opacity: 0.45,
     side: THREE.DoubleSide,
@@ -318,9 +368,11 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   plinthMesh.receiveShadow = true;
   group.add(plinthMesh);
 
-  // Plinth Outer Hazard Border
-  const plinthRingGeom = new THREE.RingGeometry(habRadius + 0.9, habRadius + 1.2, 32);
-  const plinthRing = new THREE.Mesh(plinthRingGeom, hazardMat);
+  // Plinth Outer Radial Hazard Border (No distortion!)
+  const plinthRing = new THREE.Mesh(
+    createRadialRingGeometry(habRadius + 0.9, habRadius + 1.2, 48),
+    hazardMat
+  );
   plinthRing.rotation.x = -Math.PI / 2;
   plinthRing.position.y = 0.71;
   group.add(plinthRing);
@@ -432,80 +484,211 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   }
 
   // -------------------------------------------------------------
-  // 4. Roof Geodesic Dome with Panoramic Observation Cupola
+  // 4. Zero-Gap Dual-Shell Roof Dome & Panoramic Observation Cupola
   // -------------------------------------------------------------
-  const domeRadius = habRadius + 0.1;
-  const domeHeight = 3.2;
-  const domeGeom = new THREE.SphereGeometry(
-    domeRadius,
-    32,
-    16,
-    0,
-    Math.PI * 2,
-    0,
-    Math.PI * 0.38
-  );
-  const domeMesh = new THREE.Mesh(domeGeom, habitatExteriorMat);
-  domeMesh.position.y = 0.45 + habWallHeight;
-  group.add(domeMesh);
+  const wallTopY = 0.45 + habWallHeight; // 4.65
+  const domeHeight = 2.75;
+  const cupolaRadius = 2.18;
 
-  // Roof Observation Cupola (Multi-pane Skylight looking into space & Earth!)
-  const cupolaRing = new THREE.Mesh(
-    new THREE.TorusGeometry(2.4, 0.14, 8, 24),
+  // Structural Compression Collar Ring physically locking wall and roof together
+  const collarMesh = new THREE.Mesh(
+    new THREE.CylinderGeometry(habRadius + 0.18, habRadius + 0.18, 0.18, 32),
     darkFrameMat
   );
-  cupolaRing.rotation.x = Math.PI / 2;
-  cupolaRing.position.y = 0.45 + habWallHeight + domeHeight - 0.2;
-  group.add(cupolaRing);
+  collarMesh.position.y = wallTopY;
+  group.add(collarMesh);
+
+  // Exterior Roof Dome: Curves seamlessly from r=6.70 at y=4.65 up to r=2.18 at y=7.40
+  const roofDomeGeom = createDomeSectionGeometry(
+    habRadius + 0.1,
+    cupolaRadius,
+    wallTopY,
+    domeHeight,
+    16,
+    32
+  );
+  const roofDomeMesh = new THREE.Mesh(roofDomeGeom, roofExteriorMat);
+  group.add(roofDomeMesh);
+
+  // Exterior Gold MLI Skirt around lower dome curvature
+  const mliRoofSkirtGeom = createDomeSectionGeometry(
+    habRadius + 0.14,
+    habRadius * 0.78,
+    wallTopY + 0.05,
+    0.85,
+    8,
+    32
+  );
+  const mliRoofSkirt = new THREE.Mesh(mliRoofSkirtGeom, goldMliMat);
+  group.add(mliRoofSkirt);
+
+  // 8 Exterior Titanium Geodesic Ribs curving along roof dome
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 * i) / 8;
+    const ribGroup = new THREE.Group();
+    ribGroup.rotation.y = angle;
+
+    const s1 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.2, 0.22), darkFrameMat);
+    s1.position.set(5.7, wallTopY + 0.55, 0);
+    s1.rotation.z = -0.42;
+    ribGroup.add(s1);
+
+    const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.2, 0.22), darkFrameMat);
+    s2.position.set(4.3, wallTopY + 1.45, 0);
+    s2.rotation.z = -0.75;
+    ribGroup.add(s2);
+
+    const s3 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 1.1, 0.22), darkFrameMat);
+    s3.position.set(2.8, wallTopY + 2.22, 0);
+    s3.rotation.z = -1.05;
+    ribGroup.add(s3);
+
+    group.add(ribGroup);
+  }
+
+  // Interior Ceiling Dome: Curves from r=6.45 at y=4.65 up to r=2.05 at y=7.30
+  const innerCeilingGeom = createDomeSectionGeometry(
+    habRadius - 0.15,
+    cupolaRadius - 0.13,
+    wallTopY,
+    domeHeight - 0.1,
+    16,
+    32
+  );
+  const innerCeilingMesh = new THREE.Mesh(innerCeilingGeom, ceilingInteriorMat);
+  group.add(innerCeilingMesh);
+
+  // Interior Ceiling Arches with Recessed Glowing Cyan LEDs
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 * i) / 8;
+    const archGroup = new THREE.Group();
+    archGroup.rotation.y = angle;
+
+    const ledStrip1 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.1, 0.04), cyanGlowMat);
+    ledStrip1.position.set(5.4, wallTopY + 0.52, 0);
+    ledStrip1.rotation.z = -0.42;
+    archGroup.add(ledStrip1);
+
+    const ledStrip2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.1, 0.04), cyanGlowMat);
+    ledStrip2.position.set(4.1, wallTopY + 1.38, 0);
+    ledStrip2.rotation.z = -0.75;
+    archGroup.add(ledStrip2);
+
+    const ledStrip3 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.0, 0.04), cyanGlowMat);
+    ledStrip3.position.set(2.7, wallTopY + 2.12, 0);
+    ledStrip3.rotation.z = -1.05;
+    archGroup.add(ledStrip3);
+
+    group.add(archGroup);
+  }
+
+  // Skylight Bezel Ring (Opening between interior room and cupola)
+  const skylightRing = new THREE.Mesh(
+    new THREE.TorusGeometry(cupolaRadius, 0.12, 8, 32),
+    darkFrameMat
+  );
+  skylightRing.rotation.x = Math.PI / 2;
+  skylightRing.position.y = wallTopY + domeHeight - 0.05;
+  group.add(skylightRing);
+
+  // Soft atmospheric skylight wash light shining down into the center room
+  const skylightWashLight = new THREE.PointLight(0x90e0ef, 1.6, 12, 1.3);
+  skylightWashLight.position.set(0, wallTopY + domeHeight - 0.2, 0);
+  group.add(skylightWashLight);
+
+  // Observation Cupola (Octagonal observation deck looking out into lunar orbit)
+  const cupolaBaseY = wallTopY + domeHeight - 0.05; // ~7.35
+  const cupolaCollar = new THREE.Mesh(
+    new THREE.CylinderGeometry(cupolaRadius + 0.05, cupolaRadius + 0.05, 0.18, 8),
+    darkFrameMat
+  );
+  cupolaCollar.position.y = cupolaBaseY + 0.09;
+  group.add(cupolaCollar);
+
+  // Octagonal Cupola Window Frame & Tinted Glass Panes
+  const cupolaFrame = new THREE.Mesh(
+    new THREE.CylinderGeometry(cupolaRadius, cupolaRadius, 0.65, 8, 1, true),
+    darkFrameMat
+  );
+  cupolaFrame.position.y = cupolaBaseY + 0.50;
+  group.add(cupolaFrame);
 
   const cupolaGlass = new THREE.Mesh(
-    new THREE.SphereGeometry(2.4, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.25),
+    new THREE.CylinderGeometry(cupolaRadius - 0.02, cupolaRadius - 0.02, 0.62, 8, 1, true),
     cupolaGlassMat
   );
-  cupolaGlass.position.y = 0.45 + habWallHeight + domeHeight - 0.2;
+  cupolaGlass.position.y = cupolaBaseY + 0.50;
   group.add(cupolaGlass);
 
-  // Roof Comms Mast & Navigational Beacon
-  const commsMast = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.06, 0.08, 3.2, 8),
+  // Top Glass Dome Cap
+  const cupolaGlassDome = new THREE.Mesh(
+    new THREE.SphereGeometry(cupolaRadius - 0.02, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.26),
+    cupolaGlassMat
+  );
+  cupolaGlassDome.position.y = cupolaBaseY + 0.50;
+  group.add(cupolaGlassDome);
+
+  const cupolaTopRing = new THREE.Mesh(
+    new THREE.TorusGeometry(cupolaRadius, 0.09, 8, 24),
     darkFrameMat
   );
-  commsMast.position.set(0, 0.45 + habWallHeight + domeHeight + 1.4, 0);
+  cupolaTopRing.rotation.x = Math.PI / 2;
+  cupolaTopRing.position.y = cupolaBaseY + 0.82;
+  group.add(cupolaTopRing);
+
+  // Comms Mast & High-Gain Parabolic Dish
+  const commsMast = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.06, 0.09, 2.6, 8),
+    darkFrameMat
+  );
+  commsMast.position.set(0, cupolaBaseY + 2.1, 0);
   group.add(commsMast);
 
   const dishGeom = new THREE.ConeGeometry(1.4, 0.6, 16, 1, true);
   const dishMesh = new THREE.Mesh(dishGeom, darkFrameMat);
-  dishMesh.position.set(0, 0.45 + habWallHeight + domeHeight + 2.2, 0);
+  dishMesh.position.set(0, cupolaBaseY + 2.6, 0);
   dishMesh.rotation.x = 1.25;
   dishMesh.rotation.y = 0.6;
   group.add(dishMesh);
 
   const roofBeacon = new THREE.Mesh(
-    new THREE.SphereGeometry(0.12, 8, 8),
+    new THREE.SphereGeometry(0.14, 8, 8),
     cyanGlowMat
   );
-  roofBeacon.position.set(0, 0.45 + habWallHeight + domeHeight + 3.1, 0);
+  roofBeacon.position.set(0, cupolaBaseY + 3.4, 0);
   group.add(roofBeacon);
 
-  // Large Photovoltaic Solar Array Wings
+  // High-Efficiency Solar Array Wings (Clear above dome, no clipping!)
   const solarTruss = new THREE.Group();
-  solarTruss.position.set(0, 0.45 + habWallHeight + domeHeight - 0.4, 0);
+  solarTruss.position.set(0, cupolaBaseY + 0.45, 0);
+
+  const pylonLeft = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.8, 0.14), darkFrameMat);
+  pylonLeft.position.set(-3.2, -0.6, 0);
+  pylonLeft.rotation.z = -0.55;
+  solarTruss.add(pylonLeft);
+
+  const pylonRight = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.8, 0.14), darkFrameMat);
+  pylonRight.position.set(3.2, -0.6, 0);
+  pylonRight.rotation.z = 0.55;
+  solarTruss.add(pylonRight);
+
   const trussBeam = new THREE.Mesh(
-    new THREE.BoxGeometry(19.0, 0.18, 0.18),
+    new THREE.BoxGeometry(19.0, 0.2, 0.2),
     darkFrameMat
   );
   solarTruss.add(trussBeam);
 
   const panelGeom = new THREE.BoxGeometry(7.2, 0.08, 2.6);
   const panelLeft = new THREE.Mesh(panelGeom, solarCellMat);
-  panelLeft.position.set(-6.8, 0.25, 0);
+  panelLeft.position.set(-6.8, 0.28, 0);
   panelLeft.rotation.x = -0.28;
   solarTruss.add(panelLeft);
 
   const panelRight = new THREE.Mesh(panelGeom, solarCellMat);
-  panelRight.position.set(6.8, 0.25, 0);
+  panelRight.position.set(6.8, 0.28, 0);
   panelRight.rotation.x = -0.28;
   solarTruss.add(panelRight);
+
   group.add(solarTruss);
 
   // Exterior Flank Cryogenic O2/N2 Spheres
@@ -628,7 +811,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const rampLength = 2.6;
   const rampWidth = 2.4;
   const rampGeom = new THREE.BoxGeometry(rampWidth, 0.12, rampLength);
-  const rampMesh = new THREE.Mesh(rampGeom, floorMat);
+  const rampMesh = new THREE.Mesh(rampGeom, rampMat);
   rampMesh.position.set(0, 0.22, airlockLength / 2 + rampLength / 2);
   rampMesh.rotation.x = 0.16;
   airlockGroup.add(rampMesh);

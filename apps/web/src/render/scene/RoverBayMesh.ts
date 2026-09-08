@@ -41,6 +41,45 @@ function createHazardStripeTexture(): THREE.CanvasTexture {
   return texture;
 }
 
+function createRadialRingGeometry(
+  innerRadius: number,
+  outerRadius: number,
+  segments = 32
+): THREE.BufferGeometry {
+  const geom = new THREE.BufferGeometry();
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  for (let i = 0; i <= segments; i++) {
+    const angle = (i / segments) * Math.PI * 2;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const u = i / segments;
+
+    positions.push(cos * innerRadius, 0, sin * innerRadius);
+    uvs.push(u * 8, 0);
+
+    positions.push(cos * outerRadius, 0, sin * outerRadius);
+    uvs.push(u * 8, 1);
+  }
+
+  for (let i = 0; i < segments; i++) {
+    const a = i * 2;
+    const b = a + 1;
+    const c = (i + 1) * 2;
+    const d = c + 1;
+    indices.push(a, b, c);
+    indices.push(c, b, d);
+  }
+
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geom.setIndex(indices);
+  geom.computeVertexNormals();
+  return geom;
+}
+
 /**
  * Creates illuminated tactical signage texture for the Rover Bay.
  */
@@ -117,8 +156,8 @@ export function createRoverBayMesh(posX = -15, posZ = -4.5): RoverBayInstance {
   padMesh.receiveShadow = true;
   group.add(padMesh);
 
-  // Pad Hazard Warning Perimeter Ring
-  const ringGeom = new THREE.RingGeometry(3.2, 3.6, 8);
+  // Pad Hazard Warning Perimeter Ring (Radial UV)
+  const ringGeom = createRadialRingGeometry(3.2, 3.6, 32);
   const ringMesh = new THREE.Mesh(ringGeom, hazardMat);
   ringMesh.rotation.x = -Math.PI / 2;
   ringMesh.position.y = 0.21;

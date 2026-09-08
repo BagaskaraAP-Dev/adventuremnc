@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {
   createGoldMliTextures,
   createTitaniumPlateTextures,
+  createLunarWheelTextures,
 } from '../texture/ProceduralTextures';
 
 export interface RoverMeshInstance {
@@ -26,8 +27,9 @@ export interface RoverMeshInstance {
 export function createRoverMesh(): RoverMeshInstance {
   const group = new THREE.Group();
 
-  const goldMli = createGoldMliTextures();
-  const titanium = createTitaniumPlateTextures();
+  const goldMli = createGoldMliTextures(3, 2);
+  const titanium = createTitaniumPlateTextures(2, 2);
+  const wheelTextures = createLunarWheelTextures();
 
   // Materials with authentic space PBR textures
   const chassisMaterial = new THREE.MeshStandardMaterial({
@@ -49,9 +51,12 @@ export function createRoverMesh(): RoverMeshInstance {
   });
 
   const wheelMeshMaterial = new THREE.MeshStandardMaterial({
-    color: 0x858e96, // Zinc-coated wire mesh tire
-    roughness: 0.5,
-    metalness: 0.7,
+    map: wheelTextures.map,
+    bumpMap: wheelTextures.bumpMap,
+    bumpScale: 0.06,
+    color: 0xd1d5db, // Zinc-coated wire mesh tire with chevron cleats
+    roughness: 0.45,
+    metalness: 0.8,
   });
 
   const hubMaterial = new THREE.MeshStandardMaterial({

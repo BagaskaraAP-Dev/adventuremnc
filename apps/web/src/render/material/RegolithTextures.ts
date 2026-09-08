@@ -90,11 +90,11 @@ export function createRegolithTextures(): RegolithPbrTextures {
 
       heightMap[idx] = totalNoise;
 
-      // Lunar Bond Albedo ~0.12 base grayscale (~33 in 8-bit sRGB)
-      const baseGray = 33 + totalNoise * 18;
-      const r = Math.min(255, Math.max(0, baseGray * 1.02));
-      const g = Math.min(255, Math.max(0, baseGray * 0.98));
-      const b = Math.min(255, Math.max(0, baseGray * 0.94));
+      // Lunar regolith calibrated albedo (Apollo photographic reference)
+      const baseGray = 85 + totalNoise * 28;
+      const r = Math.min(255, Math.max(0, baseGray * 1.01));
+      const g = Math.min(255, Math.max(0, baseGray * 0.99));
+      const b = Math.min(255, Math.max(0, baseGray * 0.97));
 
       const pIdx = idx * 4;
       aData[pIdx] = r;
@@ -130,9 +130,9 @@ export function createRegolithTextures(): RegolithPbrTextures {
         const pIdx = idx * 4;
 
         const normDist = dist / radius;
-        const curA0 = aData[pIdx] ?? 33;
-        const curA1 = aData[pIdx + 1] ?? 33;
-        const curA2 = aData[pIdx + 2] ?? 33;
+        const curA0 = aData[pIdx] ?? 85;
+        const curA1 = aData[pIdx + 1] ?? 85;
+        const curA2 = aData[pIdx + 2] ?? 85;
         const curH = heightMap[idx] ?? 0;
 
         if (normDist <= 1.0) {
@@ -140,17 +140,17 @@ export function createRegolithTextures(): RegolithPbrTextures {
           const bowl = Math.cos(normDist * (Math.PI / 2)) * depth;
           heightMap[idx] = Math.max(0, curH - bowl);
           // Darker shaded interior
-          aData[pIdx] = Math.max(14, curA0 - bowl * 18);
-          aData[pIdx + 1] = Math.max(13, curA1 - bowl * 18);
-          aData[pIdx + 2] = Math.max(12, curA2 - bowl * 18);
+          aData[pIdx] = Math.max(40, curA0 - bowl * 35);
+          aData[pIdx + 1] = Math.max(38, curA1 - bowl * 35);
+          aData[pIdx + 2] = Math.max(36, curA2 - bowl * 35);
         } else if (normDist <= 1.6) {
           // Crater raised rim
           const rimFactor = Math.sin((normDist - 1.0) * (Math.PI / 0.6)) * (depth * 0.35);
           heightMap[idx] = curH + rimFactor;
           // Lighter powdered rim ejecta
-          aData[pIdx] = Math.min(65, curA0 + rimFactor * 35);
-          aData[pIdx + 1] = Math.min(63, curA1 + rimFactor * 35);
-          aData[pIdx + 2] = Math.min(60, curA2 + rimFactor * 35);
+          aData[pIdx] = Math.min(160, curA0 + rimFactor * 65);
+          aData[pIdx + 1] = Math.min(156, curA1 + rimFactor * 65);
+          aData[pIdx + 2] = Math.min(150, curA2 + rimFactor * 65);
         }
       }
     }
@@ -164,7 +164,7 @@ export function createRegolithTextures(): RegolithPbrTextures {
     const ry = Math.floor(((Math.cos(seed * 2.3) * 0.5 + 0.5) * size));
     const rockRadius = 2 + Math.floor(Math.pow((Math.sin(seed * 3.1) * 0.5 + 0.5), 3.0) * 12);
     const rockHeight = 0.4 + Math.random() * 0.6;
-    const rockTone = 55 + Math.floor(Math.random() * 45); // Lighter rock fragments
+    const rockTone = 115 + Math.floor(Math.random() * 55); // Lighter rock fragments
 
     for (let dy = -rockRadius; dy <= rockRadius; dy++) {
       for (let dx = -rockRadius; dx <= rockRadius; dx++) {
@@ -181,9 +181,9 @@ export function createRegolithTextures(): RegolithPbrTextures {
         heightMap[idx] = curH + dome;
 
         // Rock face color
-        aData[pIdx] = Math.min(120, rockTone + Math.floor(dome * 15));
-        aData[pIdx + 1] = Math.min(115, rockTone + Math.floor(dome * 15));
-        aData[pIdx + 2] = Math.min(110, rockTone + Math.floor(dome * 15));
+        aData[pIdx] = Math.min(220, rockTone + Math.floor(dome * 35));
+        aData[pIdx + 1] = Math.min(215, rockTone + Math.floor(dome * 35));
+        aData[pIdx + 2] = Math.min(210, rockTone + Math.floor(dome * 35));
 
         // Rocks and impact beads have lower roughness (specular glints)
         rData[pIdx] = 135;
