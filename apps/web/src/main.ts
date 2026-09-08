@@ -14,6 +14,7 @@ import { FlyCamera } from './render/camera/FlyCamera';
 import { createAstronautMesh } from './render/character/AstronautMesh';
 import { createRoverMesh } from './render/vehicle/RoverMesh';
 import { createHabitatMesh } from './render/scene/HabitatMesh';
+import { createRoverBayMesh } from './render/scene/RoverBayMesh';
 import { BallisticDustParticles } from './render/particles/BallisticDustParticles';
 import { InputManager } from './input/InputManager';
 import { HUD } from './ui/HUD';
@@ -35,6 +36,10 @@ function bootstrap(): void {
   // Habitat Base Module (Airlock at X: -22, Z: -9.8)
   const habitat = createHabitatMesh(-22, -18);
   lunarScene.scene.add(habitat.group);
+
+  // Dedicated Lunar Rover Bay 01 (Docking & Rapid Charging Pad)
+  const roverBay = createRoverBayMesh(-14, -10);
+  lunarScene.scene.add(roverBay.group);
 
   // Entities: Restore from Local Save if exists, else initial landing point
   const savedState = LocalSaveManager.load();
@@ -154,13 +159,46 @@ function bootstrap(): void {
         deathReason: 'NONE',
       });
 
+      const isInside = habitat.isInside(charState.x, charState.z);
+      if (isInside) {
+        // Step outside onto the ramp
+        const outsideX = habitat.airlockX;
+        const outsideZ = habitat.airlockZ + 2.0;
+        const outsideY = sampleLunarElevation(outsideX, outsideZ);
+        character.setState({
+          x: outsideX,
+          y: outsideY,
+          z: outsideZ,
+          vx: 0,
+          vy: 0,
+          vz: 0,
+          isGrounded: true,
+        });
+        hud.showToast('🚪 AIRLOCK CYCLED // EXITED TO LUNAR SURFACE // O₂ 100% // SAVED');
+      } else {
+        // Step into habitat airlock vestibule
+        const insideX = habitat.airlockX;
+        const insideZ = habitat.airlockZ - 1.2;
+        character.setState({
+          x: insideX,
+          y: habitat.floorY,
+          z: insideZ,
+          vx: 0,
+          vy: 0,
+          vz: 0,
+          isGrounded: true,
+        });
+        hud.showToast('🚪 AIRLOCK CYCLED // WELCOME TO PRESSURIZED HABITAT BASE // SAVED');
+      }
+
       const rState = rover.getState();
+      const updatedCState = character.getState();
       LocalSaveManager.save(
         {
-          x: charState.x,
-          y: charState.y,
-          z: charState.z,
-          yaw: charState.yaw,
+          x: updatedCState.x,
+          y: updatedCState.y,
+          z: updatedCState.z,
+          yaw: updatedCState.yaw,
           health: 100,
           oxygen: 100,
           suitTemperature: 21.0,
@@ -173,8 +211,6 @@ function bootstrap(): void {
           yaw: rState.yaw,
         }
       );
-
-      hud.showToast('💾 HABITAT AIRLOCK CYCLED // LIFE SUPPORT RECHARGED // PROGRESS SAVED');
       return;
     }
 
@@ -207,6 +243,55 @@ function bootstrap(): void {
       thirdPersonCamera.reset(exitX, exitGroundY, exitZ);
     }
   };
+
+  // Dedicated Rover Recall to Bay 01
+  const recallRoverToBay = () => {
+    if (gameMode === 'ROVER_DRIVING') {
+      hud.showToast('⚠️ CANNOT RECALL ROVER WHILE DRIVING');
+      return;
+    }
+    const bayX = -14;
+    const bayZ = -10;
+    const bayY = sampleLunarElevation(bayX, bayZ) + 0.5;
+    rover.setState({
+      x: bayX,
+      y: bayY,
+      z: bayZ,
+      yaw: 0,
+      pitch: 0,
+      roll: 0,
+      vx: 0,
+      vy: 0,
+      vz: 0,
+      speed: 0,
+      isGrounded: true,
+      isRolledOver: false,
+    });
+    audioEngine.playQuindarTone();
+    hud.showToast('🚜 ROVER RECALLED TO BAY 01 // DOCKED & READY FOR EXPEDITION');
+
+    const cState = character.getState();
+    LocalSaveManager.save(
+      {
+        x: cState.x,
+        y: cState.y,
+        z: cState.z,
+        yaw: cState.yaw,
+        health: cState.health,
+        oxygen: cState.oxygen,
+        suitTemperature: cState.suitTemperature,
+        suitIntegrity: cState.suitIntegrity,
+      },
+      {
+        x: bayX,
+        y: bayY,
+        z: bayZ,
+        yaw: 0,
+      }
+    );
+  };
+  inputManager.onRecallRover = recallRoverToBay;
+  hud.onRecallRover = recallRoverToBay;
 
   const executeRespawn = () => {
     audioEngine.playQuindarTone();
@@ -350,11 +435,22 @@ function bootstrap(): void {
         const cPre = character.getState();
         const inSun = checkIsInSunlight(cPre.x, cPre.y, cPre.z);
         const nearAirlock = habitat.canInteractAirlock(cPre.x, cPre.z);
+        const isInsideHab = habitat.isInside(cPre.x, cPre.z);
+        const isNearShelter = nearAirlock || isInsideHab;
 
         character.update(charInputs, dt, {
-          isInSunlight: inSun,
-          isInsideShelter: nearAirlock,
+          isInSunlight: inSun && !isInsideHab,
+          isInsideShelter: isNearShelter,
+          getGroundElevation: (x, z) => habitat.getFloorHeight(x, z) ?? sampleLunarElevation(x, z),
+          constrainPosition: (currX, currZ, nextX, nextZ) =>
+            habitat.constrainPosition(currX, currZ, nextX, nextZ),
         });
+
+        if (isInsideHab) {
+          thirdPersonCamera.setTargetProfile(2.2, 1.45);
+        } else {
+          thirdPersonCamera.setTargetProfile(3.6, 1.25);
+        }
 
         const cState = character.getState();
 
@@ -403,6 +499,8 @@ function bootstrap(): void {
       }
 
       dustParticles.update(currentTimeSec);
+      habitat.updateAnimation(currentTimeSec, dt);
+      roverBay.updateAnimation(currentTimeSec);
       lunarScene.update(dt);
     },
     render: () => {
@@ -455,6 +553,7 @@ function bootstrap(): void {
         canInteractAirlock,
         distanceToHab: distHab,
         distanceToRover: distRover,
+        isInsideHabitat: habitat.isInside(charState.x, charState.z) && gameMode === 'EVA_ASTRONAUT',
         oxygen: charState.oxygen,
         suitTemperature: charState.suitTemperature,
         suitIntegrity: charState.suitIntegrity,

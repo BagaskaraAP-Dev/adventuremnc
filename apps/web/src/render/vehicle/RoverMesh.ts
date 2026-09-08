@@ -171,6 +171,17 @@ export function createRoverMesh(): RoverMeshInstance {
   dish.rotation.x = 0.5;
   bodyGroup.add(dish);
 
+  // High-visibility vehicle telemetry beacon (ensures rover is never lost in darkness)
+  const beaconGeo = new THREE.SphereGeometry(0.08, 8, 8);
+  const beaconMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+  const beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
+  beaconMesh.position.set(-0.6, 1.6, 1.1);
+  bodyGroup.add(beaconMesh);
+
+  const beaconLight = new THREE.PointLight(0x00f0ff, 0.8, 14, 1.8);
+  beaconLight.position.set(-0.6, 1.65, 1.1);
+  bodyGroup.add(beaconLight);
+
   // Twin LED headlights + dynamic spotlights
   const headlampGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.12, 12);
   const leftLight = new THREE.Mesh(headlampGeo, lightMaterial);

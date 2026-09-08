@@ -21,6 +21,7 @@ export interface HudTelemetryData {
   canInteractAirlock?: boolean;
   distanceToHab?: number;
   distanceToRover?: number;
+  isInsideHabitat?: boolean;
   // M4 Survival Data
   oxygen: number;
   suitTemperature: number;
@@ -30,6 +31,7 @@ export interface HudTelemetryData {
 }
 
 export class HUD {
+  public onRecallRover?: () => void;
   private container: HTMLElement;
   private posElement: HTMLElement;
   private altElement: HTMLElement;
@@ -207,6 +209,12 @@ export class HUD {
           this.onToggleAudio();
         }
       }
+      if (target && target.closest('.hud-btn-rover')) {
+        e.stopPropagation();
+        if (this.onRecallRover) {
+          this.onRecallRover();
+        }
+      }
     });
 
     this.renderFooter('EVA_ASTRONAUT');
@@ -237,6 +245,7 @@ export class HUD {
 
     const termBtn = `<span class="hud-key hud-btn-terminal" style="cursor: pointer; color: #00f0ff; background: rgba(0,240,255,0.15); border: 1px solid rgba(0,240,255,0.4); padding: 1px 6px; border-radius: 3px;">[T] SAT-COM TERMINAL</span>`;
     const audioBtn = `<span class="hud-key hud-btn-audio" style="cursor: pointer; color: ${this.isAudioMuted ? '#ff5252' : '#00ff88'}; background: ${this.isAudioMuted ? 'rgba(255,82,82,0.15)' : 'rgba(0,255,136,0.12)'}; border: 1px solid ${this.isAudioMuted ? 'rgba(255,82,82,0.4)' : 'rgba(0,255,136,0.35)'}; padding: 1px 6px; border-radius: 3px;">[M] SOUND: ${this.isAudioMuted ? 'OFF 🔇' : 'ON 🔊'}</span>`;
+    const roverBtn = `<span class="hud-key hud-btn-rover" style="cursor: pointer; color: #ffd700; background: rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.4); padding: 1px 6px; border-radius: 3px;">[B] RECALL ROVER 🚜</span>`;
 
     if (mode === 'ROVER_DRIVING') {
       this.footerElement.innerHTML = `
@@ -254,6 +263,7 @@ export class HUD {
         <span class="hud-key">SPACE</span> 1/6G HOP • 
         <span class="hud-key">SHIFT</span> SPRINT • 
         <span class="hud-key">V</span> FLY CAM • 
+        ${roverBtn} • 
         ${termBtn} • 
         ${audioBtn}
       `;
@@ -312,7 +322,10 @@ export class HUD {
     const temp = data.suitTemperature;
     const envElem = document.getElementById('hud-temp-env');
     if (envElem) {
-      if (data.isInsideShelter) {
+      if (data.isInsideHabitat) {
+        envElem.textContent = 'HABITAT (+21.5°C 1.0 ATM)';
+        envElem.style.color = '#00ff88';
+      } else if (data.isInsideShelter) {
         envElem.textContent = 'SHELTER (+21°C)';
         envElem.style.color = '#00ff88';
       } else if (data.isInSunlight) {
@@ -350,7 +363,8 @@ export class HUD {
     const habDist = data.distanceToHab !== undefined ? `${data.distanceToHab.toFixed(0)}m` : '--';
     const roverDist =
       data.distanceToRover !== undefined ? `${data.distanceToRover.toFixed(0)}m` : '--';
-    this.rangefinderElement.textContent = `HABITAT: ${habDist} | ROVER: ${roverDist}`;
+    const habStatus = data.isInsideHabitat ? ' [INSIDE ROOM]' : '';
+    this.rangefinderElement.textContent = `HABITAT: ${habDist}${habStatus} | ROVER: ${roverDist}`;
 
     // ------------------------------------------------------------------
     // 2. Visor Atmospheric Effects
@@ -392,10 +406,12 @@ export class HUD {
     // ------------------------------------------------------------------
     if (data.canInteractAirlock) {
       this.promptElement.style.display = 'block';
-      this.promptElement.textContent = '[E] ENTER HABITAT AIRLOCK (REFILL & SAVE)';
+      this.promptElement.textContent = data.isInsideHabitat
+        ? '[E] EXIT HABITAT TO SURFACE (SAVE & REFILL)'
+        : '[E] ENTER HABITAT AIRLOCK (SAVE & REFILL)';
     } else if (data.canInteractRover && data.mode === 'EVA_ASTRONAUT') {
       this.promptElement.style.display = 'block';
-      this.promptElement.textContent = '[E] ENTER MINING ROVER';
+      this.promptElement.textContent = '[E] ENTER MINING ROVER COCKPIT';
     } else {
       this.promptElement.style.display = 'none';
     }

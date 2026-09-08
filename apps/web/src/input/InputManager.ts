@@ -6,6 +6,7 @@ export class InputManager {
   public onRespawn?: () => void;
   public onInteract?: () => void;
   public onToggleAudio?: () => void;
+  public onRecallRover?: () => void;
 
   constructor() {
     window.addEventListener('keydown', (e) => {
@@ -29,6 +30,9 @@ export class InputManager {
       }
       if (e.code === 'KeyM' && this.onToggleAudio) {
         this.onToggleAudio();
+      }
+      if (e.code === 'KeyB' && this.onRecallRover) {
+        this.onRecallRover();
       }
     });
 

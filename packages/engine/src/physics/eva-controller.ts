@@ -61,6 +61,18 @@ export interface CharacterState {
   isInsideShelter: boolean;
 }
 
+export interface EnvironmentalContext {
+  isInSunlight?: boolean;
+  isInsideShelter?: boolean;
+  getGroundElevation?: (x: number, z: number) => number;
+  constrainPosition?: (
+    currX: number,
+    currZ: number,
+    nextX: number,
+    nextZ: number
+  ) => { x: number; z: number };
+}
+
 export class EvaCharacterController {
   private state: CharacterState;
   private jumpStartY = 0;
@@ -102,7 +114,7 @@ export class EvaCharacterController {
   public update(
     inputs: CharacterInputs,
     dt: number,
-    environmentalContext?: { isInSunlight?: boolean; isInsideShelter?: boolean }
+    environmentalContext?: EnvironmentalContext
   ): void {
     if (environmentalContext) {
       if (typeof environmentalContext.isInSunlight === 'boolean') {
@@ -189,8 +201,6 @@ export class EvaCharacterController {
         }
       }
     }
-
-    const groundY = sampleLunarElevation(this.state.x, this.state.z);
 
     // 1. Horizontal Input & Movement Direction (Camera-Relative)
     const fwdInput = (inputs.moveForward ? 1 : 0) - (inputs.moveBackward ? 1 : 0);
@@ -286,9 +296,26 @@ export class EvaCharacterController {
     }
 
     // 3. Position Integration
-    this.state.x += this.state.vx * dt;
+    const nextX = this.state.x + this.state.vx * dt;
+    const nextZ = this.state.z + this.state.vz * dt;
+    if (environmentalContext?.constrainPosition) {
+      const constrained = environmentalContext.constrainPosition(
+        this.state.x,
+        this.state.z,
+        nextX,
+        nextZ
+      );
+      this.state.x = constrained.x;
+      this.state.z = constrained.z;
+    } else {
+      this.state.x = nextX;
+      this.state.z = nextZ;
+    }
     this.state.y += this.state.vy * dt;
-    this.state.z += this.state.vz * dt;
+
+    const groundY = environmentalContext?.getGroundElevation
+      ? environmentalContext.getGroundElevation(this.state.x, this.state.z)
+      : sampleLunarElevation(this.state.x, this.state.z);
 
     // 4. Ground Collision, Slope Snapping & Fall Damage
     const distAboveGround = this.state.y - groundY;
