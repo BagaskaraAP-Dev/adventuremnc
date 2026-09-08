@@ -1,4 +1,5 @@
 import { LUNAR_RADIUS } from '@adventuremnc/shared';
+import { getRoadGradeSmoothing } from './lunar-roads';
 
 export interface CraterSpec {
   x: number;
@@ -72,6 +73,11 @@ export function sampleLunarElevation(x: number, z: number): number {
   // Smoothly damp rolling waves right under the base pad (within 13m) so foundation stays rock solid & level
   const baseDamp = Math.min(1.0, Math.max(0.0, (distBase - 11) / 9));
 
+  // Road corridor grading: smooth out rolling swells along active road corridors
+  const roadGrade = getRoadGradeSmoothing(x, z);
+  const roadDamp = 1.0 - roadGrade * 0.85;
+  const effectiveDamp = baseDamp * roadDamp;
+
   // Multi-directional rolling swells: primary rolling wave (~65m), cross swell (~40m), and rippling dunes (~18m)
   const waveAngle1 = 0.55;
   const u1 = x * Math.cos(waveAngle1) + z * Math.sin(waveAngle1);
@@ -89,7 +95,7 @@ export function sampleLunarElevation(x: number, z: number): number {
     Math.sin(x * 0.024 + z * 0.018) * 1.2 +
     Math.cos(x * 0.065 - z * 0.052) * 0.6;
 
-  return elevation + (rollingWaves * baseDamp) + microDetail;
+  return elevation + (rollingWaves * effectiveDamp) + microDetail;
 }
 
 /**

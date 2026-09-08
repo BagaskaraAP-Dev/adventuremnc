@@ -21,6 +21,7 @@ import { HUD } from './ui/HUD';
 import { CtfManager } from './ctf/CtfManager';
 import { LocalSaveManager } from './save/LocalSaveManager';
 import { LunarAudioEngine } from './audio/LunarAudioEngine';
+import { createLunarRoadMarkers } from './render/scene/LunarRoadMarkers';
 
 function bootstrap(): void {
   const canvas = document.getElementById('render-canvas') as HTMLCanvasElement;
@@ -40,6 +41,10 @@ function bootstrap(): void {
   // Dedicated Lunar Rover Bay 01 (Docking & Rapid Charging Pad right beside entrance ramp)
   const roverBay = createRoverBayMesh(-15, -4.5);
   lunarScene.scene.add(roverBay.group);
+
+  // High-Definition Lunar Road Navigation System (Solar Beacons & Route Signs)
+  const roadMarkers = createLunarRoadMarkers();
+  lunarScene.scene.add(roadMarkers.group);
 
   // Entities: Restore from Local Save if exists, else initial landing point
   const savedState = LocalSaveManager.load();
@@ -540,6 +545,7 @@ function bootstrap(): void {
       dustParticles.update(currentTimeSec);
       habitat.updateAnimation(currentTimeSec, dt);
       roverBay.updateAnimation(currentTimeSec);
+      roadMarkers.updateAnimation(currentTimeSec);
       lunarScene.update(dt);
     },
     render: () => {

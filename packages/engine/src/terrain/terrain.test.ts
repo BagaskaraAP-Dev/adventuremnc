@@ -6,6 +6,9 @@ import {
   getActiveChunkDescriptors,
   calculateChunkLod,
   BASE_CHUNK_SIZE,
+  getDistanceToRoad,
+  getRoadGradeSmoothing,
+  LUNAR_ROAD_SEGMENTS,
 } from '../index';
 
 describe('Lunar DEM and Morphology', () => {
@@ -45,5 +48,19 @@ describe('Lunar DEM and Morphology', () => {
       expect(chunk.resolution).toBeGreaterThanOrEqual(8);
       expect([0, 1, 2]).toContain(chunk.lod);
     }
+  });
+
+  it('verifies lunar road network corridors and roadbed grading', () => {
+    expect(LUNAR_ROAD_SEGMENTS.length).toBeGreaterThan(0);
+
+    // Rover Bay apron start point (-15, -4.5) must be on the road
+    const bayResult = getDistanceToRoad(-15, -4.5);
+    expect(bayResult.distance).toBeCloseTo(0, 1);
+    expect(getRoadGradeSmoothing(-15, -4.5)).toBe(1.0);
+
+    // Deep into untouched lunar mare (1500, 1500) must have 0 road smoothing
+    const mareResult = getDistanceToRoad(1500, 1500);
+    expect(mareResult.distance).toBeGreaterThan(500);
+    expect(getRoadGradeSmoothing(1500, 1500)).toBe(0.0);
   });
 });

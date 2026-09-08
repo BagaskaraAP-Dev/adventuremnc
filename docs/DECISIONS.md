@@ -46,7 +46,8 @@
 ### 9. Vehicle Chase Camera & Apollo LRV Wheel Kinematics
 - Rationale: Free-orbit cameras during vehicle control lead to inverted movement perception when the camera faces the front bumper (pressing W drives the rover toward the player screen). We implemented an active third-person chase camera that dynamically springs behind the rover's heading angle (`camera.yaw -> rover.yaw`). Additionally, lunar wire-mesh wheels must rotate in the YZ plane around the transverse X axle with radial spokes and titanium chevron cleats to provide unambiguous visual rotation feedback in high-contrast vacuum lighting.
 
+### 10. High-Definition Lunar Road Network & Multi-Scale Regolith PBR Textures
+- Rationale: Natural regolith across 8x8 km appears repetitive if mapped with a single repeating tile, and stretches on steep crater walls. We implemented a 3-tier texture system: (1) 64m macro geological variation map breaking up repeating tiling, (2) 1.5m micro-detail normal map giving crisp sub-millimeter granular dust at 0.5-2m eye height, and (3) tri-planar slope projection for crater walls > 25°. Furthermore, we engineered deterministic lunar transit corridors (Route 01 to Shackleton Mining Sector and Route 02 to Radio Relay): the terrain shader dynamically splats compacted dual-rut rover tracks with chevron tire treads and pulverized anorthosite shoulder berms, the elevation model grades roadbed swells by 85% for high-speed rover travel, and instanced solar navigation beacon posts provide 60 FPS visual wayfinding.
+
 ## Known Gaps (M3)
-- Life support survival systems (O2 depletion & PSR cryogenic freezing) (scheduled for M4).
-- Hab airlock interior zones as refill/save stations (scheduled for M4).
 - Mission runner and contract board (scheduled for M6).

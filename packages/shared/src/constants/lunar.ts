@@ -118,3 +118,12 @@ export const SUIT_HVAC_REGULATION_RATE = 0.35;
 /** Radius interaksi airlock habitat pangkalan (m) */
 export const HABITAT_AIRLOCK_RADIUS = 4.8;
 
+/** Lebar standar koridor jalan transportasi Bulan (m) */
+export const LUNAR_ROAD_WIDTH = 6.0;
+
+/** Lebar bahu jalan regolith terpadatkan (m) */
+export const LUNAR_ROAD_SHOULDER_WIDTH = 1.2;
+
+/** Jarak antar tiang suar navigasi jalan (m) */
+export const LUNAR_ROAD_BEACON_SPACING = 32.0;
+
