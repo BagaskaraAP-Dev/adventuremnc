@@ -234,8 +234,8 @@ export class RoverController {
     const leftAvgH = (hFL + hRL) * 0.5;
     const rightAvgH = (hFR + hRR) * 0.5;
 
-    const targetPitch = Math.atan2(rearAvgH - frontAvgH, ROVER_WHEELBASE);
-    const targetRoll = Math.atan2(leftAvgH - rightAvgH, ROVER_TRACK_WIDTH);
+    const targetPitch = Math.atan2(frontAvgH - rearAvgH, ROVER_WHEELBASE);
+    const targetRoll = Math.atan2(rightAvgH - leftAvgH, ROVER_TRACK_WIDTH);
 
     if (dt > 0) {
       this.state.pitch += (targetPitch - this.state.pitch) * Math.min(1.0, dt * 15);
