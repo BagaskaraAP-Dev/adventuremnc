@@ -369,19 +369,20 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   // -------------------------------------------------------------
   // 1. Heavy Foundation Plinth & Leveling Jacks
   // -------------------------------------------------------------
+  // Height 0.7m: top at y = 0.45m (flush with floor base), bottom anchored at y = -0.25m
   const plinthGeom = new THREE.CylinderGeometry(habRadius + 1.2, habRadius + 1.5, 0.7, 32);
   const plinthMesh = new THREE.Mesh(plinthGeom, darkFrameMat);
-  plinthMesh.position.y = 0.35;
+  plinthMesh.position.y = 0.10;
   plinthMesh.receiveShadow = true;
   group.add(plinthMesh);
 
-  // Plinth Outer Radial Hazard Border (No distortion!)
+  // Plinth Outer Radial Hazard Border (On exterior foundation terrace)
   const plinthRing = new THREE.Mesh(
     createRadialRingGeometry(habRadius + 0.9, habRadius + 1.2, 48),
     hazardMat
   );
   plinthRing.rotation.x = -Math.PI / 2;
-  plinthRing.position.y = 0.71;
+  plinthRing.position.y = 0.452;
   group.add(plinthRing);
 
   // -------------------------------------------------------------
@@ -392,7 +393,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     floorMat
   );
   floorMesh.rotation.x = -Math.PI / 2;
-  floorMesh.position.y = 0.45;
+  floorMesh.position.y = 0.453;
   floorMesh.receiveShadow = true;
   group.add(floorMesh);
 
@@ -406,7 +407,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     })
   );
   emblemMesh.rotation.x = -Math.PI / 2;
-  emblemMesh.position.set(0, 0.46, 0);
+  emblemMesh.position.set(0, 0.455, 0);
   group.add(emblemMesh);
 
   // Recessed Floor Glowing Guide Runners (Cyan & Gold LEDs)
@@ -415,20 +416,24 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     new THREE.BoxGeometry(0.12, 0.02, 6.0),
     runnerMat
   );
-  runnerCentral.position.set(0, 0.47, 3.0);
+  runnerCentral.position.set(0, 0.456, 3.0);
   group.add(runnerCentral);
 
   const runnerCross = new THREE.Mesh(
     new THREE.BoxGeometry(8.0, 0.02, 0.12),
     runnerMat
   );
-  runnerCross.position.set(0, 0.47, 0);
+  runnerCross.position.set(0, 0.456, 0);
   group.add(runnerCross);
 
   // -------------------------------------------------------------
   // 3. Walls & Pressure Hull Architecture
   // -------------------------------------------------------------
-  // Outer Cylindrical Wall (HD Thermal Tiles) with cutout doorway for airlock
+  // Calculate precise doorway cutout: walk corridor is width 2.8m (half-width 1.40m)
+  const cutoutAngle = Math.asin(1.40 / habRadius); // ~0.2137 rad
+  const cutoutSweep = Math.PI * 2 - cutoutAngle * 2;
+
+  // Outer Cylindrical Wall (HD Thermal Tiles) with precise doorway cutout
   const outerWallGeom = new THREE.CylinderGeometry(
     habRadius + 0.1,
     habRadius + 0.1,
@@ -436,8 +441,8 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     32,
     1,
     true,
-    0.35,
-    Math.PI * 2 - 0.7
+    cutoutAngle,
+    cutoutSweep
   );
   const outerWallMesh = new THREE.Mesh(outerWallGeom, habitatExteriorMat);
   outerWallMesh.position.y = 0.45 + habWallHeight / 2;
@@ -447,15 +452,15 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const innerWallGeom = new THREE.CylinderGeometry(
     habRadius - 0.15,
     habRadius - 0.15,
-    habWallHeight - 0.1,
+    habWallHeight - 0.05,
     32,
     1,
     true,
-    0.35,
-    Math.PI * 2 - 0.7
+    cutoutAngle,
+    cutoutSweep
   );
   const innerWallMesh = new THREE.Mesh(innerWallGeom, interiorPaddedMat);
-  innerWallMesh.position.y = 0.45 + habWallHeight / 2;
+  innerWallMesh.position.y = 0.45 + (habWallHeight - 0.05) / 2;
   group.add(innerWallMesh);
 
   // Gold MLI Insulation Band on exterior
@@ -466,8 +471,8 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     32,
     1,
     true,
-    0.35,
-    Math.PI * 2 - 0.7
+    cutoutAngle,
+    cutoutSweep
   );
   const mliBand = new THREE.Mesh(mliBandGeom, goldMliMat);
   mliBand.position.y = 0.45 + 1.8;
@@ -476,7 +481,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   // Vertical Titanium Structural Bulkhead Ribs (8 ribs around perimeter)
   for (let i = 0; i < 8; i++) {
     const angle = (Math.PI * 2 * i) / 8;
-    if (Math.abs(angle - Math.PI / 2) < 0.45) continue;
+    if (Math.abs(angle - Math.PI / 2) < 0.35) continue;
     const rib = new THREE.Mesh(
       new THREE.BoxGeometry(0.18, habWallHeight, 0.45),
       darkFrameMat
@@ -497,13 +502,31 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const domeHeight = 2.75;
   const cupolaRadius = 2.18;
 
-  // Structural Compression Collar Ring physically locking wall and roof together
+  // Structural Compression Collar Bands physically locking wall and roof together
   const collarMesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(habRadius + 0.18, habRadius + 0.18, 0.18, 32),
+    new THREE.CylinderGeometry(habRadius + 0.18, habRadius + 0.18, 0.22, 32, 1, true),
     darkFrameMat
   );
   collarMesh.position.y = wallTopY;
   group.add(collarMesh);
+
+  // Exterior clamping torus ring
+  const collarTorus = new THREE.Mesh(
+    new THREE.TorusGeometry(habRadius + 0.16, 0.08, 8, 32),
+    darkFrameMat
+  );
+  collarTorus.rotation.x = Math.PI / 2;
+  collarTorus.position.y = wallTopY;
+  group.add(collarTorus);
+
+  // Interior crown molding ring locking quilted wall to ceiling dome
+  const innerCrownTorus = new THREE.Mesh(
+    new THREE.TorusGeometry(habRadius - 0.15, 0.06, 8, 32),
+    darkFrameMat
+  );
+  innerCrownTorus.rotation.x = Math.PI / 2;
+  innerCrownTorus.position.y = wallTopY;
+  group.add(innerCrownTorus);
 
   // Exterior Roof Dome: Curves seamlessly from r=6.70 at y=4.65 up to r=2.18 at y=7.40
   const roofDomeGeom = createDomeSectionGeometry(
@@ -627,33 +650,61 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   cupolaGlass.position.y = cupolaBaseY + 0.50;
   group.add(cupolaGlass);
 
-  // Top Glass Dome Cap
-  const cupolaGlassDome = new THREE.Mesh(
-    new THREE.SphereGeometry(cupolaRadius - 0.02, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.26),
-    cupolaGlassMat
-  );
-  cupolaGlassDome.position.y = cupolaBaseY + 0.50;
-  group.add(cupolaGlassDome);
+  const cupolaTopY = cupolaBaseY + 0.82;
 
+  // Cupola Top Structural Framing Ring
   const cupolaTopRing = new THREE.Mesh(
     new THREE.TorusGeometry(cupolaRadius, 0.09, 8, 24),
     darkFrameMat
   );
   cupolaTopRing.rotation.x = Math.PI / 2;
-  cupolaTopRing.position.y = cupolaBaseY + 0.82;
+  cupolaTopRing.position.y = cupolaTopY;
   group.add(cupolaTopRing);
 
-  // Comms Mast & High-Gain Parabolic Dish
+  // Cupola Glass Hemisphere Dome Cap (Starts precisely at top rim y = cupolaTopY with r = cupolaRadius - 0.02)
+  const cupolaGlassDome = new THREE.Mesh(
+    new THREE.SphereGeometry(cupolaRadius - 0.02, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+    cupolaGlassMat
+  );
+  cupolaGlassDome.position.y = cupolaTopY;
+  group.add(cupolaGlassDome);
+
+  // 8 Geodesic Arched Titanium Framing Ribs over the Cupola Dome
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 * i) / 8;
+    const domeRib = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.04, cupolaRadius * 1.2, 8),
+      darkFrameMat
+    );
+    domeRib.position.set(
+      Math.sin(angle) * (cupolaRadius * 0.45),
+      cupolaTopY + cupolaRadius * 0.55,
+      Math.cos(angle) * (cupolaRadius * 0.45)
+    );
+    domeRib.rotation.y = angle;
+    domeRib.rotation.z = 0.65;
+    group.add(domeRib);
+  }
+
+  // Cupola Apex Structural Hub
+  const cupolaApexHub = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.35, 0.45, 0.16, 8),
+    darkFrameMat
+  );
+  cupolaApexHub.position.y = cupolaTopY + cupolaRadius - 0.02;
+  group.add(cupolaApexHub);
+
+  // Comms Mast & High-Gain Parabolic Dish (Mounted on apex hub)
   const commsMast = new THREE.Mesh(
     new THREE.CylinderGeometry(0.06, 0.09, 2.6, 8),
     darkFrameMat
   );
-  commsMast.position.set(0, cupolaBaseY + 2.1, 0);
+  commsMast.position.set(0, cupolaTopY + cupolaRadius + 1.2, 0);
   group.add(commsMast);
 
   const dishGeom = new THREE.ConeGeometry(1.4, 0.6, 16, 1, true);
   const dishMesh = new THREE.Mesh(dishGeom, darkFrameMat);
-  dishMesh.position.set(0, cupolaBaseY + 2.6, 0);
+  dishMesh.position.set(0, cupolaTopY + cupolaRadius + 1.7, 0);
   dishMesh.rotation.x = 1.25;
   dishMesh.rotation.y = 0.6;
   group.add(dishMesh);
@@ -662,7 +713,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     new THREE.SphereGeometry(0.14, 8, 8),
     cyanGlowMat
   );
-  roofBeacon.position.set(0, cupolaBaseY + 3.4, 0);
+  roofBeacon.position.set(0, cupolaTopY + cupolaRadius + 2.5, 0);
   group.add(roofBeacon);
 
   // High-Efficiency Solar Array Wings (Clear above dome, no clipping!)
@@ -722,30 +773,138 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const airlockWidth = 3.2;
   const airlockHeight = 3.2;
 
-  // Airlock Floor Plate
+  // Vestibule total extrusion depth: extends from outer hatch at local z = +1.8 (world z = 10.0)
+  // backward into the habitat main room to local z = -2.6 (world z = 5.6).
+  // Total vestibule length = 4.4m, centered at local z = -0.4m (world z = 7.8m).
+  const vestDepth = 4.4;
+  const vestCenterZ = -0.4;
+
+  // Airlock Floor Plate (Hex composite deck seamlessly overlapping main room floor)
   const airlockFloor = new THREE.Mesh(
-    new THREE.BoxGeometry(airlockWidth - 0.2, 0.1, airlockLength),
+    new THREE.BoxGeometry(airlockWidth - 0.2, 0.12, vestDepth),
     floorMat
   );
-  airlockFloor.position.set(0, 0.45, 0);
+  airlockFloor.position.set(0, 0.453, vestCenterZ);
   airlockGroup.add(airlockFloor);
 
-  // Left & Right Airlock Side Walls (Industrial Brushed Titanium)
-  const wallGeo = new THREE.BoxGeometry(0.2, airlockHeight, airlockLength);
+  // Interior Room Transition Threshold Plate (Diamond tread with hazard border)
+  const innerThreshold = new THREE.Mesh(
+    new THREE.BoxGeometry(airlockWidth - 0.2, 0.02, 0.6),
+    rampMat
+  );
+  innerThreshold.position.set(0, 0.456, -2.35);
+  airlockGroup.add(innerThreshold);
+
+  // Left & Right Airlock Side Walls (Industrial Brushed Titanium, overlapping cylinder hull)
+  const wallGeo = new THREE.BoxGeometry(0.24, airlockHeight, vestDepth);
   const leftWall = new THREE.Mesh(wallGeo, darkFrameMat);
-  leftWall.position.set(-airlockWidth / 2, 0.45 + airlockHeight / 2, 0);
+  leftWall.position.set(-airlockWidth / 2, 0.45 + airlockHeight / 2, vestCenterZ);
   airlockGroup.add(leftWall);
 
   const rightWall = new THREE.Mesh(wallGeo, darkFrameMat);
-  rightWall.position.set(airlockWidth / 2, 0.45 + airlockHeight / 2, 0);
+  rightWall.position.set(airlockWidth / 2, 0.45 + airlockHeight / 2, vestCenterZ);
   airlockGroup.add(rightWall);
 
   // Airlock Ceiling Roof
-  const ceilingGeo = new THREE.BoxGeometry(airlockWidth, 0.2, airlockLength);
+  const ceilingGeo = new THREE.BoxGeometry(airlockWidth + 0.04, 0.22, vestDepth);
   const airlockRoof = new THREE.Mesh(ceilingGeo, darkFrameMat);
-  airlockRoof.position.set(0, 0.45 + airlockHeight, 0);
+  airlockRoof.position.set(0, 0.45 + airlockHeight, vestCenterZ);
   airlockGroup.add(airlockRoof);
 
+  // -------------------------------------------------------------
+  // Zero-Gap Structural Sealing: Upper Transom Bulkhead & Pilasters
+  // -------------------------------------------------------------
+  // A. Upper Transom Bulkhead: Fills the entire 1.05m vertical gap above airlock roof
+  // from y = 3.65m up to y = 4.70m, physically interlocking into the roof dome collar
+  const upperTransomCore = new THREE.Mesh(
+    new THREE.BoxGeometry(3.6, 1.05, 0.75),
+    darkFrameMat
+  );
+  upperTransomCore.position.set(0, 4.175, -1.75);
+  airlockGroup.add(upperTransomCore);
+
+  // Exterior Thermal Tile Cladding on upper transom
+  const upperTransomExterior = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, 1.02, 0.12),
+    habitatExteriorMat
+  );
+  upperTransomExterior.position.set(0, 4.175, -1.40);
+  airlockGroup.add(upperTransomExterior);
+
+  // Exterior Gold MLI blanket strip on upper transom
+  const upperTransomMli = new THREE.Mesh(
+    new THREE.BoxGeometry(3.52, 0.55, 0.14),
+    goldMliMat
+  );
+  upperTransomMli.position.set(0, 3.90, -1.38);
+  airlockGroup.add(upperTransomMli);
+
+  // Interior Padded Acoustic Wall on upper transom inside room
+  const upperTransomInterior = new THREE.Mesh(
+    new THREE.BoxGeometry(3.4, 1.02, 0.12),
+    interiorPaddedMat
+  );
+  upperTransomInterior.position.set(0, 4.175, -2.10);
+  airlockGroup.add(upperTransomInterior);
+
+  // Exterior Titanium Structural Support Lintel above airlock roof
+  const upperLintel = new THREE.Mesh(
+    new THREE.BoxGeometry(3.7, 0.20, 0.40),
+    darkFrameMat
+  );
+  upperLintel.position.set(0, 3.75, -1.45);
+  airlockGroup.add(upperLintel);
+
+  // B. Exterior Corner Pilasters: Closes lateral transition between airlock side walls and curved cylinder hull
+  const pilasterGeo = new THREE.BoxGeometry(0.36, airlockHeight + 0.1, 0.85);
+  const leftPilaster = new THREE.Mesh(pilasterGeo, darkFrameMat);
+  leftPilaster.position.set(-1.65, 0.45 + airlockHeight / 2, -1.65);
+  airlockGroup.add(leftPilaster);
+
+  const rightPilaster = new THREE.Mesh(pilasterGeo, darkFrameMat);
+  rightPilaster.position.set(1.65, 0.45 + airlockHeight / 2, -1.65);
+  airlockGroup.add(rightPilaster);
+
+  // C. Interior Bulkhead Portal: Heavy pressurized doorway arch framing airlock entrance inside room
+  const innerJambGeo = new THREE.BoxGeometry(0.24, airlockHeight, 0.28);
+  const innerLeftJamb = new THREE.Mesh(innerJambGeo, darkFrameMat);
+  innerLeftJamb.position.set(-1.5, 0.45 + airlockHeight / 2, -2.5);
+  airlockGroup.add(innerLeftJamb);
+
+  const innerRightJamb = new THREE.Mesh(innerJambGeo, darkFrameMat);
+  innerRightJamb.position.set(1.5, 0.45 + airlockHeight / 2, -2.5);
+  airlockGroup.add(innerRightJamb);
+
+  const innerHeaderArch = new THREE.Mesh(
+    new THREE.BoxGeometry(airlockWidth + 0.04, 0.28, 0.28),
+    darkFrameMat
+  );
+  innerHeaderArch.position.set(0, 0.45 + airlockHeight, -2.5);
+  airlockGroup.add(innerHeaderArch);
+
+  const innerDoorHazard = new THREE.Mesh(
+    new THREE.BoxGeometry(2.8, 0.08, 0.04),
+    hazardMat
+  );
+  innerDoorHazard.position.set(0, 0.45 + airlockHeight - 0.14, -2.65);
+  airlockGroup.add(innerDoorHazard);
+
+  const innerDoorScreen = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.9, 0.40),
+    new THREE.MeshBasicMaterial({
+      map: createScreenTexture('AIRLOCK PORTAL', [
+        'CHAMBER: EQUALIZED',
+        'EXT HATCH: SEALED',
+        'STATUS: 100% AIRTIGHT',
+      ]),
+    })
+  );
+  innerDoorScreen.position.set(0, 0.45 + airlockHeight - 0.45, -2.65);
+  airlockGroup.add(innerDoorScreen);
+
+  // -------------------------------------------------------------
+  // Outer Hatch & Exterior Entrance
+  // -------------------------------------------------------------
   // Outer Hatch Door Frame
   const hatchFrameGeo = new THREE.BoxGeometry(airlockWidth + 0.2, airlockHeight + 0.2, 0.3);
   const hatchFrame = new THREE.Mesh(hatchFrameGeo, darkFrameMat);
