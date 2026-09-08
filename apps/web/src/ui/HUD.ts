@@ -126,6 +126,12 @@ export class HUD {
         <div class="hud-row hud-rangefinder" id="hud-rangefinder">
           HAB: --m | ROVER: --m
         </div>
+
+        <!-- Interactive Rover Waypoint & Summon Button -->
+        <div id="hud-rover-waypoint" style="cursor: pointer; margin-top: 6px; padding: 4px 8px; background: rgba(255, 183, 3, 0.15); border: 1px solid rgba(255, 183, 3, 0.5); border-radius: 4px; font-size: 11px; color: #ffb703; font-weight: bold; text-align: center; display: flex; align-items: center; justify-content: space-between;">
+          <span id="hud-rover-dist-text">🚜 MOBIL BULAN: --m</span>
+          <span style="background: #ffb703; color: #000; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: bold;">PANGGIL [B]</span>
+        </div>
       </div>
 
       <!-- Center Reticle & Context Action Prompts -->
@@ -191,6 +197,15 @@ export class HUD {
       respawnBtn.addEventListener('click', () => {
         if (this.onRespawn) {
           this.onRespawn();
+        }
+      });
+    }
+
+    const roverWaypoint = document.getElementById('hud-rover-waypoint');
+    if (roverWaypoint) {
+      roverWaypoint.addEventListener('click', () => {
+        if (this.onRecallRover) {
+          this.onRecallRover();
         }
       });
     }
@@ -365,6 +380,28 @@ export class HUD {
       data.distanceToRover !== undefined ? `${data.distanceToRover.toFixed(0)}m` : '--';
     const habStatus = data.isInsideHabitat ? ' [INSIDE ROOM]' : '';
     this.rangefinderElement.textContent = `HABITAT: ${habDist}${habStatus} | ROVER: ${roverDist}`;
+
+    // Update Interactive Rover Waypoint Badge
+    const roverWaypoint = document.getElementById('hud-rover-waypoint');
+    const roverDistText = document.getElementById('hud-rover-dist-text');
+    if (roverWaypoint && roverDistText) {
+      if (data.mode === 'ROVER_DRIVING') {
+        roverWaypoint.style.display = 'none';
+      } else {
+        roverWaypoint.style.display = 'flex';
+        const numDist = data.distanceToRover !== undefined ? Math.round(data.distanceToRover) : 0;
+        roverDistText.textContent = `🚜 MOBIL BULAN: ${numDist}m`;
+        if (numDist > 18) {
+          roverWaypoint.style.borderColor = '#ef4444';
+          roverWaypoint.style.background = 'rgba(239, 68, 68, 0.25)';
+          roverWaypoint.style.color = '#fca5a5';
+        } else {
+          roverWaypoint.style.borderColor = 'rgba(255, 183, 3, 0.6)';
+          roverWaypoint.style.background = 'rgba(255, 183, 3, 0.15)';
+          roverWaypoint.style.color = '#ffb703';
+        }
+      }
+    }
 
     // ------------------------------------------------------------------
     // 2. Visor Atmospheric Effects

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { sampleLunarElevation } from '@adventuremnc/engine';
+import { createTitaniumPlateTextures } from '../texture/ProceduralTextures';
 
 export interface RoverBayInstance {
   group: THREE.Group;
@@ -10,7 +11,7 @@ export interface RoverBayInstance {
 }
 
 /**
- * Creates procedural yellow & black hazard warning stripe texture for landing apron borders.
+ * Creates high-contrast yellow & black hazard warning stripe texture.
  */
 function createHazardStripeTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -59,7 +60,7 @@ function createBaySignTexture(): THREE.CanvasTexture {
   ctx.fillStyle = '#00f0ff';
   ctx.font = 'bold 30px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('LUNAR ROVER BAY 01', 256, 52);
+  ctx.fillText('🚜 LUNAR ROVER BAY 01', 256, 52);
 
   ctx.fillStyle = '#00ff88';
   ctx.font = 'bold 20px monospace';
@@ -68,16 +69,21 @@ function createBaySignTexture(): THREE.CanvasTexture {
   return new THREE.CanvasTexture(canvas);
 }
 
-export function createRoverBayMesh(posX = -14, posZ = -10): RoverBayInstance {
+export function createRoverBayMesh(posX = -15, posZ = -4.5): RoverBayInstance {
   const group = new THREE.Group();
   const groundY = sampleLunarElevation(posX, posZ);
   group.position.set(posX, groundY, posZ);
 
+  const titanium = createTitaniumPlateTextures();
+
   // Materials
   const tarmacMat = new THREE.MeshStandardMaterial({
-    color: 0x22262c,
-    roughness: 0.8,
-    metalness: 0.25,
+    map: titanium.map,
+    bumpMap: titanium.bumpMap,
+    bumpScale: 0.04,
+    color: 0x333b47,
+    roughness: 0.7,
+    metalness: 0.35,
   });
 
   const hazardMat = new THREE.MeshStandardMaterial({
@@ -87,6 +93,9 @@ export function createRoverBayMesh(posX = -14, posZ = -10): RoverBayInstance {
   });
 
   const frameMat = new THREE.MeshStandardMaterial({
+    map: titanium.map,
+    bumpMap: titanium.bumpMap,
+    bumpScale: 0.03,
     color: 0x2b303a,
     roughness: 0.5,
     metalness: 0.8,
@@ -122,7 +131,9 @@ export function createRoverBayMesh(posX = -14, posZ = -10): RoverBayInstance {
     [-2.6, 2.6],
     [2.6, 2.6],
   ];
-  for (const [cx, cz] of cornerCoords) {
+  for (const coord of cornerCoords) {
+    const cx = coord[0];
+    const cz = coord[1];
     const post = new THREE.Mesh(
       new THREE.CylinderGeometry(0.04, 0.04, 0.35, 8),
       frameMat
@@ -131,7 +142,7 @@ export function createRoverBayMesh(posX = -14, posZ = -10): RoverBayInstance {
     group.add(post);
 
     const bulb = new THREE.Mesh(
-      new THREE.SphereGeometry(0.08, 8, 8),
+      new THREE.SphereGeometry(0.09, 8, 8),
       amberLightMat
     );
     bulb.position.set(cx, 0.48, cz);
@@ -183,7 +194,6 @@ export function createRoverBayMesh(posX = -14, posZ = -10): RoverBayInstance {
   boom.position.set(-1.0, 3.2, 0);
   gantryGroup.add(boom);
 
-  // Power Cable Curve
   const cableCurve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(0, 3.2, 0),
     new THREE.Vector3(-1.0, 3.0, 0.2),
@@ -205,8 +215,8 @@ export function createRoverBayMesh(posX = -14, posZ = -10): RoverBayInstance {
   gantryGroup.add(signMesh);
 
   // High-Intensity Floodlight illuminating the parked rover
-  const floodlight = new THREE.SpotLight(0xfff8ee, 3.2, 16, Math.PI / 3, 0.35, 1.2);
-  floodlight.position.set(-1.0, 3.3, 0);
+  const floodlight = new THREE.SpotLight(0xfff8ee, 3.5, 18, Math.PI / 3, 0.35, 1.2);
+  floodlight.position.set(-1.0, 3.4, 0);
   floodlight.target.position.set(-3.2, 0, 0);
   gantryGroup.add(floodlight);
   gantryGroup.add(floodlight.target);

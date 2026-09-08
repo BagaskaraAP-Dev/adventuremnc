@@ -37,8 +37,8 @@ function bootstrap(): void {
   const habitat = createHabitatMesh(-22, -18);
   lunarScene.scene.add(habitat.group);
 
-  // Dedicated Lunar Rover Bay 01 (Docking & Rapid Charging Pad)
-  const roverBay = createRoverBayMesh(-14, -10);
+  // Dedicated Lunar Rover Bay 01 (Docking & Rapid Charging Pad right beside entrance ramp)
+  const roverBay = createRoverBayMesh(-15, -4.5);
   lunarScene.scene.add(roverBay.group);
 
   // Entities: Restore from Local Save if exists, else initial landing point
@@ -62,12 +62,33 @@ function bootstrap(): void {
   const astronautMesh = createAstronautMesh();
   lunarScene.scene.add(astronautMesh.group);
 
-  const roverStartX = savedState ? savedState.rover.x : -14;
-  const roverStartZ = savedState ? savedState.rover.z : -10;
+  // Rover starting position: default right on Rover Bay 01 pad in plain view
+  const defaultRoverX = -15;
+  const defaultRoverZ = -4.5;
+  let roverStartX = defaultRoverX;
+  let roverStartZ = defaultRoverZ;
+
+  if (savedState && savedState.rover) {
+    const distFromBase = Math.hypot(
+      savedState.rover.x - habitat.airlockX,
+      savedState.rover.z - habitat.airlockZ
+    );
+    // If rover was parked near base (within 35m), preserve it.
+    // If it was lost far away in an old save (> 35m), safely spawn it at Rover Bay 01!
+    if (distFromBase <= 35) {
+      roverStartX = savedState.rover.x;
+      roverStartZ = savedState.rover.z;
+    }
+  }
+
   const rover = new RoverController(roverStartX, roverStartZ);
-  if (savedState) {
+  if (savedState && roverStartX === savedState.rover.x) {
     rover.setState({
       yaw: savedState.rover.yaw,
+    });
+  } else {
+    rover.setState({
+      yaw: -Math.PI / 2,
     });
   }
 
@@ -244,20 +265,36 @@ function bootstrap(): void {
     }
   };
 
-  // Dedicated Rover Recall to Bay 01
+  // Dedicated Rover Recall / Summon
   const recallRoverToBay = () => {
     if (gameMode === 'ROVER_DRIVING') {
-      hud.showToast('⚠️ CANNOT RECALL ROVER WHILE DRIVING');
+      hud.showToast('⚠️ TIDAK BISA MEMANGGIL SAAT SEDANG MENGEMUDI');
       return;
     }
-    const bayX = -14;
-    const bayZ = -10;
-    const bayY = sampleLunarElevation(bayX, bayZ) + 0.5;
+    const cState = character.getState();
+    const distToBase = Math.hypot(cState.x - habitat.airlockX, cState.z - habitat.airlockZ);
+
+    let targetX = -15;
+    let targetZ = -4.5;
+    let targetYaw = -Math.PI / 2;
+    let toastMsg = '🚜 MOBIL BULAN DITEMUKAN & TERPARKIR DI BAY 01!';
+
+    // If player is exploring far from base (> 18m), summon rover right in front of player!
+    if (distToBase > 18.0) {
+      const fwdX = -Math.sin(cState.yaw);
+      const fwdZ = -Math.cos(cState.yaw);
+      targetX = cState.x + fwdX * 3.5;
+      targetZ = cState.z + fwdZ * 3.5;
+      targetYaw = cState.yaw;
+      toastMsg = '🚜 MOBIL BULAN DIPANGGIL LANGSUNG KE DEPAN ANDA!';
+    }
+
+    const targetY = sampleLunarElevation(targetX, targetZ) + 0.5;
     rover.setState({
-      x: bayX,
-      y: bayY,
-      z: bayZ,
-      yaw: 0,
+      x: targetX,
+      y: targetY,
+      z: targetZ,
+      yaw: targetYaw,
       pitch: 0,
       roll: 0,
       vx: 0,
@@ -268,9 +305,8 @@ function bootstrap(): void {
       isRolledOver: false,
     });
     audioEngine.playQuindarTone();
-    hud.showToast('🚜 ROVER RECALLED TO BAY 01 // DOCKED & READY FOR EXPEDITION');
+    hud.showToast(toastMsg);
 
-    const cState = character.getState();
     LocalSaveManager.save(
       {
         x: cState.x,
@@ -283,10 +319,10 @@ function bootstrap(): void {
         suitIntegrity: cState.suitIntegrity,
       },
       {
-        x: bayX,
-        y: bayY,
-        z: bayZ,
-        yaw: 0,
+        x: targetX,
+        y: targetY,
+        z: targetZ,
+        yaw: targetYaw,
       }
     );
   };

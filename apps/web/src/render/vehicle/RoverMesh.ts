@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import {
+  createGoldMliTextures,
+  createTitaniumPlateTextures,
+} from '../texture/ProceduralTextures';
 
 export interface RoverMeshInstance {
   group: THREE.Group;
@@ -22,17 +26,26 @@ export interface RoverMeshInstance {
 export function createRoverMesh(): RoverMeshInstance {
   const group = new THREE.Group();
 
-  // Materials
+  const goldMli = createGoldMliTextures();
+  const titanium = createTitaniumPlateTextures();
+
+  // Materials with authentic space PBR textures
   const chassisMaterial = new THREE.MeshStandardMaterial({
-    color: 0xcca030, // Gold thermal multi-layer insulation (MLI)
-    roughness: 0.35,
-    metalness: 0.85,
+    map: goldMli.map,
+    bumpMap: goldMli.bumpMap,
+    bumpScale: 0.05,
+    color: 0xffffff,
+    roughness: 0.28,
+    metalness: 0.92,
   });
 
   const frameMaterial = new THREE.MeshStandardMaterial({
-    color: 0x2e3338, // Matte dark titanium alloy frame
-    roughness: 0.7,
-    metalness: 0.6,
+    map: titanium.map,
+    bumpMap: titanium.bumpMap,
+    bumpScale: 0.03,
+    color: 0x2b3038,
+    roughness: 0.6,
+    metalness: 0.7,
   });
 
   const wheelMeshMaterial = new THREE.MeshStandardMaterial({

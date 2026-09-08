@@ -1,6 +1,13 @@
 import * as THREE from 'three';
 import { sampleLunarElevation } from '@adventuremnc/engine';
 import { HABITAT_AIRLOCK_RADIUS } from '@adventuremnc/shared';
+import {
+  createThermalTileTextures,
+  createQuiltedInteriorTextures,
+  createGoldMliTextures,
+  createTitaniumPlateTextures,
+  createAirlockBulkheadTexture,
+} from '../texture/ProceduralTextures';
 
 export interface HabitatInstance {
   group: THREE.Group;
@@ -68,7 +75,6 @@ function createHexFloorTexture(): THREE.CanvasTexture {
   ctx.fillStyle = '#1c2026';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Hexagonal grid drawing
   ctx.strokeStyle = '#2d3748';
   ctx.lineWidth = 3;
   const hexRadius = 40;
@@ -92,8 +98,7 @@ function createHexFloorTexture(): THREE.CanvasTexture {
     }
   }
 
-  // Soft cyan circuit lines running through floor
-  ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+  ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(256, 0);
@@ -129,7 +134,6 @@ function createScreenTexture(
   ctx.lineWidth = 4;
   ctx.strokeRect(6, 6, 500, 244);
 
-  // Header
   ctx.fillStyle = accent;
   ctx.font = 'bold 24px monospace';
   ctx.fillText(title, 20, 42);
@@ -141,14 +145,12 @@ function createScreenTexture(
   ctx.lineTo(492, 56);
   ctx.stroke();
 
-  // Content lines
   ctx.fillStyle = '#e2e8f0';
   ctx.font = '16px monospace';
   lines.forEach((line, idx) => {
     ctx.fillText(line, 20, 88 + idx * 28);
   });
 
-  // Small telemetry graph
   ctx.strokeStyle = accent;
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -173,7 +175,6 @@ function createMissionEmblemTexture(): THREE.CanvasTexture {
 
   ctx.clearRect(0, 0, 512, 512);
 
-  // Outer ring
   ctx.strokeStyle = '#00f0ff';
   ctx.lineWidth = 8;
   ctx.beginPath();
@@ -186,7 +187,6 @@ function createMissionEmblemTexture(): THREE.CanvasTexture {
   ctx.arc(256, 256, 215, 0, Math.PI * 2);
   ctx.stroke();
 
-  // Moon crescent
   ctx.fillStyle = '#e2e8f0';
   ctx.beginPath();
   ctx.arc(256, 256, 120, 0, Math.PI * 2);
@@ -197,7 +197,6 @@ function createMissionEmblemTexture(): THREE.CanvasTexture {
   ctx.arc(295, 235, 105, 0, Math.PI * 2);
   ctx.fill();
 
-  // Text
   ctx.fillStyle = '#00f0ff';
   ctx.font = 'bold 26px monospace';
   ctx.textAlign = 'center';
@@ -219,31 +218,53 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const habWallHeight = 4.2;
 
   // -------------------------------------------------------------
-  // PBR Materials
+  // High-Definition PBR Procedural Materials
   // -------------------------------------------------------------
-  const habitatMat = new THREE.MeshStandardMaterial({
-    color: 0xdedede,
-    roughness: 0.4,
-    metalness: 0.25,
+  const thermalTiles = createThermalTileTextures();
+  const quiltedPadding = createQuiltedInteriorTextures();
+  const goldMli = createGoldMliTextures();
+  const titaniumPlate = createTitaniumPlateTextures();
+  const airlockBulkheadTex = createAirlockBulkheadTexture();
+
+  const habitatExteriorMat = new THREE.MeshStandardMaterial({
+    map: thermalTiles.map,
+    bumpMap: thermalTiles.bumpMap,
+    bumpScale: 0.035,
+    roughness: 0.42,
+    metalness: 0.22,
   });
 
   const interiorPaddedMat = new THREE.MeshStandardMaterial({
-    color: 0xf1f5f9,
-    roughness: 0.75,
-    metalness: 0.1,
+    map: quiltedPadding.map,
+    bumpMap: quiltedPadding.bumpMap,
+    bumpScale: 0.05,
+    roughness: 0.78,
+    metalness: 0.05,
     side: THREE.DoubleSide,
   });
 
   const goldMliMat = new THREE.MeshStandardMaterial({
-    color: 0xd4af37,
+    map: goldMli.map,
+    bumpMap: goldMli.bumpMap,
+    bumpScale: 0.06,
+    color: 0xffffff,
     roughness: 0.25,
-    metalness: 0.9,
+    metalness: 0.95,
   });
 
   const darkFrameMat = new THREE.MeshStandardMaterial({
-    color: 0x1a202c,
-    roughness: 0.6,
-    metalness: 0.6,
+    map: titaniumPlate.map,
+    bumpMap: titaniumPlate.bumpMap,
+    bumpScale: 0.035,
+    color: 0x333b47,
+    roughness: 0.55,
+    metalness: 0.75,
+  });
+
+  const airlockDoorMat = new THREE.MeshStandardMaterial({
+    map: airlockBulkheadTex,
+    roughness: 0.45,
+    metalness: 0.55,
   });
 
   const solarCellMat = new THREE.MeshStandardMaterial({
@@ -348,7 +369,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   // -------------------------------------------------------------
   // 3. Walls & Pressure Hull Architecture
   // -------------------------------------------------------------
-  // Outer Cylindrical Wall (Pressure Shell) with cutout doorway for airlock
+  // Outer Cylindrical Wall (HD Thermal Tiles) with cutout doorway for airlock
   const outerWallGeom = new THREE.CylinderGeometry(
     habRadius + 0.1,
     habRadius + 0.1,
@@ -359,7 +380,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     0.35,
     Math.PI * 2 - 0.7
   );
-  const outerWallMesh = new THREE.Mesh(outerWallGeom, habitatMat);
+  const outerWallMesh = new THREE.Mesh(outerWallGeom, habitatExteriorMat);
   outerWallMesh.position.y = 0.45 + habWallHeight / 2;
   group.add(outerWallMesh);
 
@@ -396,7 +417,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   // Vertical Titanium Structural Bulkhead Ribs (8 ribs around perimeter)
   for (let i = 0; i < 8; i++) {
     const angle = (Math.PI * 2 * i) / 8;
-    // Skip door area
     if (Math.abs(angle - Math.PI / 2) < 0.45) continue;
     const rib = new THREE.Mesh(
       new THREE.BoxGeometry(0.18, habWallHeight, 0.45),
@@ -425,7 +445,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     0,
     Math.PI * 0.38
   );
-  const domeMesh = new THREE.Mesh(domeGeom, habitatMat);
+  const domeMesh = new THREE.Mesh(domeGeom, habitatExteriorMat);
   domeMesh.position.y = 0.45 + habWallHeight;
   group.add(domeMesh);
 
@@ -454,7 +474,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   group.add(commsMast);
 
   const dishGeom = new THREE.ConeGeometry(1.4, 0.6, 16, 1, true);
-  const dishMesh = new THREE.Mesh(dishGeom, habitatMat);
+  const dishMesh = new THREE.Mesh(dishGeom, darkFrameMat);
   dishMesh.position.set(0, 0.45 + habWallHeight + domeHeight + 2.2, 0);
   dishMesh.rotation.x = 1.25;
   dishMesh.rotation.y = 0.6;
@@ -506,9 +526,8 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   // 5. Walk-Through Airlock Decompression Vestibule & Ramp
   // -------------------------------------------------------------
   const airlockGroup = new THREE.Group();
-  airlockGroup.position.set(0, 0, 8.2); // Z center of vestibule
+  airlockGroup.position.set(0, 0, 8.2);
 
-  // Vestibule Box (Walls & Roof)
   const airlockLength = 3.6;
   const airlockWidth = 3.2;
   const airlockHeight = 3.2;
@@ -521,23 +540,23 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   airlockFloor.position.set(0, 0.45, 0);
   airlockGroup.add(airlockFloor);
 
-  // Left & Right Airlock Side Walls
+  // Left & Right Airlock Side Walls (Industrial Brushed Titanium)
   const wallGeo = new THREE.BoxGeometry(0.2, airlockHeight, airlockLength);
-  const leftWall = new THREE.Mesh(wallGeo, habitatMat);
+  const leftWall = new THREE.Mesh(wallGeo, darkFrameMat);
   leftWall.position.set(-airlockWidth / 2, 0.45 + airlockHeight / 2, 0);
   airlockGroup.add(leftWall);
 
-  const rightWall = new THREE.Mesh(wallGeo, habitatMat);
+  const rightWall = new THREE.Mesh(wallGeo, darkFrameMat);
   rightWall.position.set(airlockWidth / 2, 0.45 + airlockHeight / 2, 0);
   airlockGroup.add(rightWall);
 
   // Airlock Ceiling Roof
   const ceilingGeo = new THREE.BoxGeometry(airlockWidth, 0.2, airlockLength);
-  const airlockRoof = new THREE.Mesh(ceilingGeo, habitatMat);
+  const airlockRoof = new THREE.Mesh(ceilingGeo, darkFrameMat);
   airlockRoof.position.set(0, 0.45 + airlockHeight, 0);
   airlockGroup.add(airlockRoof);
 
-  // Outer Hatch Door Frame (Front Entrance at local Z = +airlockLength/2)
+  // Outer Hatch Door Frame
   const hatchFrameGeo = new THREE.BoxGeometry(airlockWidth + 0.2, airlockHeight + 0.2, 0.3);
   const hatchFrame = new THREE.Mesh(hatchFrameGeo, darkFrameMat);
   hatchFrame.position.set(0, 0.45 + airlockHeight / 2, airlockLength / 2);
@@ -551,16 +570,11 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   archHazard.position.set(0, 0.45 + 1.35, airlockLength / 2 + 0.16);
   airlockGroup.add(archHazard);
 
-  // Outer Hatch Doorway (Recessed ajar so player can walk right in!)
+  // Outer Hatch Doorway (Textured Industrial Pressure Door)
   const outerDoor = new THREE.Mesh(
     new THREE.BoxGeometry(1.6, 2.4, 0.18),
-    new THREE.MeshStandardMaterial({
-      color: 0x334155,
-      roughness: 0.5,
-      metalness: 0.6,
-    })
+    airlockDoorMat
   );
-  // Positioned slightly open on the left side to allow seamless walkthrough
   outerDoor.position.set(-1.1, 0.45 + 1.2, airlockLength / 2 + 0.1);
   outerDoor.rotation.y = -0.5;
   airlockGroup.add(outerDoor);
@@ -576,7 +590,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   airlockGroup.add(ledRight);
 
   // Exterior Downward Floodlight illuminating ramp and Rover Bay path
-  const airlockFloodlight = new THREE.SpotLight(0x90e0ef, 3.0, 15, Math.PI / 3, 0.4);
+  const airlockFloodlight = new THREE.SpotLight(0x90e0ef, 3.2, 16, Math.PI / 3, 0.4);
   airlockFloodlight.position.set(0, 0.45 + airlockHeight + 0.2, airlockLength / 2 + 0.3);
   airlockFloodlight.target.position.set(0, 0, airlockLength / 2 + 4.0);
   airlockGroup.add(airlockFloodlight);
@@ -616,19 +630,17 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const rampGeom = new THREE.BoxGeometry(rampWidth, 0.12, rampLength);
   const rampMesh = new THREE.Mesh(rampGeom, floorMat);
   rampMesh.position.set(0, 0.22, airlockLength / 2 + rampLength / 2);
-  rampMesh.rotation.x = 0.16; // Gentle slope down to regolith
+  rampMesh.rotation.x = 0.16;
   airlockGroup.add(rampMesh);
 
   // Ramp Left & Right Handrails
-  const railMat = darkFrameMat;
   const railGeom = new THREE.CylinderGeometry(0.03, 0.03, rampLength, 8);
-
-  const leftRail = new THREE.Mesh(railGeom, railMat);
+  const leftRail = new THREE.Mesh(railGeom, darkFrameMat);
   leftRail.position.set(-rampWidth / 2, 0.7, airlockLength / 2 + rampLength / 2);
   leftRail.rotation.x = Math.PI / 2 - 0.16;
   airlockGroup.add(leftRail);
 
-  const rightRail = new THREE.Mesh(railGeom, railMat);
+  const rightRail = new THREE.Mesh(railGeom, darkFrameMat);
   rightRail.position.set(rampWidth / 2, 0.7, airlockLength / 2 + rampLength / 2);
   rightRail.rotation.x = Math.PI / 2 - 0.16;
   airlockGroup.add(rightRail);
@@ -643,13 +655,11 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const holoGroup = new THREE.Group();
   holoGroup.position.set(0, 0.45, 0);
 
-  // Hexagonal pedestal console
   const pedestalGeom = new THREE.CylinderGeometry(1.2, 1.4, 0.85, 6);
   const pedestal = new THREE.Mesh(pedestalGeom, darkFrameMat);
   pedestal.position.y = 0.425;
   holoGroup.add(pedestal);
 
-  // Angled tactical monitors around pedestal
   const screenGeom = new THREE.PlaneGeometry(0.8, 0.35);
   for (let s = 0; s < 6; s++) {
     const angle = (Math.PI / 3) * s;
@@ -681,7 +691,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   holoMoon.position.y = 1.65;
   holoGroup.add(holoMoon);
 
-  // Two Glowing Orbital Ring Tracks around the Moon
   const orbitRingGeom = new THREE.RingGeometry(0.85, 0.88, 32);
   const orbitRing1 = new THREE.Mesh(orbitRingGeom, cyanGlowMat);
   orbitRing1.position.y = 1.65;
@@ -694,7 +703,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   orbitRing2.rotation.x = -Math.PI / 4;
   holoGroup.add(orbitRing2);
 
-  // Hologram Projector Light
   const holoLight = new THREE.PointLight(0x00ffff, 1.5, 8, 1.5);
   holoLight.position.set(0, 1.65, 0);
   holoGroup.add(holoLight);
@@ -705,13 +713,11 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const labGroup = new THREE.Group();
   labGroup.position.set(-4.2, 0.45, -0.5);
 
-  // Stainless steel laboratory bench
   const benchGeom = new THREE.BoxGeometry(1.2, 0.88, 3.2);
   const labBench = new THREE.Mesh(benchGeom, darkFrameMat);
   labBench.position.set(0, 0.44, 0);
   labGroup.add(labBench);
 
-  // Dual ultrawide laboratory analysis screens
   const labScreen1 = new THREE.Mesh(
     new THREE.PlaneGeometry(1.1, 0.55),
     new THREE.MeshBasicMaterial({
@@ -748,7 +754,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   labScreen2.rotation.y = Math.PI / 2;
   labGroup.add(labScreen2);
 
-  // Transparent Glovebox Chamber with rare pulsating lunar mineral crystal
   const glovebox = new THREE.Mesh(
     new THREE.BoxGeometry(0.8, 0.6, 0.8),
     cupolaGlassMat
@@ -756,7 +761,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   glovebox.position.set(0, 1.18, 0);
   labGroup.add(glovebox);
 
-  // Rare Glowing Lunar Mineral Crystal Core inside glovebox
   const crystalGeom = new THREE.OctahedronGeometry(0.18, 0);
   const crystalMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
   const mineralCrystal = new THREE.Mesh(crystalGeom, crystalMat);
@@ -773,16 +777,13 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const hydroGroup = new THREE.Group();
   hydroGroup.position.set(4.2, 0.45, -0.5);
 
-  // 3-Tier Vertical Farming Rack
   const rackFrameGeom = new THREE.BoxGeometry(0.9, 2.8, 3.2);
   const rackFrame = new THREE.Mesh(rackFrameGeom, darkFrameMat);
   rackFrame.position.set(0, 1.4, 0);
   hydroGroup.add(rackFrame);
 
-  // 3 Plant Trays with vegetation and purple grow lights
   for (let t = 0; t < 3; t++) {
     const yPos = 0.5 + t * 0.9;
-    // Soil / hydroponic nutrient basin
     const tray = new THREE.Mesh(
       new THREE.BoxGeometry(0.75, 0.1, 2.9),
       darkFrameMat
@@ -790,7 +791,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     tray.position.set(0, yPos, 0);
     hydroGroup.add(tray);
 
-    // Green plant foliage clusters
     for (let p = -1.2; p <= 1.2; p += 0.4) {
       const plant = new THREE.Mesh(
         new THREE.DodecahedronGeometry(0.16, 1),
@@ -800,7 +800,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
       hydroGroup.add(plant);
     }
 
-    // Horticultural Grow Light Tube
     const growLight = new THREE.Mesh(
       new THREE.CylinderGeometry(0.04, 0.04, 2.8, 8),
       growLightMat
@@ -810,14 +809,12 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     hydroGroup.add(growLight);
   }
 
-  // Hydroponic Greenhouse Magenta Spotlight
   const hydroLight = new THREE.SpotLight(0xff0088, 2.2, 8, Math.PI / 3, 0.5);
   hydroLight.position.set(0, 2.7, 0);
   hydroLight.target.position.set(-1.0, 1.0, 0);
   hydroGroup.add(hydroLight);
   hydroGroup.add(hydroLight.target);
 
-  // Transparent Spirulina Algae Photobioreactor Column
   const bioreactor = new THREE.Mesh(
     new THREE.CylinderGeometry(0.25, 0.25, 2.2, 16),
     new THREE.MeshStandardMaterial({
@@ -836,7 +833,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   const quartersGroup = new THREE.Group();
   quartersGroup.position.set(0, 0.45, -4.5);
 
-  // Stacked Pressurized Sleep Berths (Two Capsules)
   const berthGeom = new THREE.BoxGeometry(2.4, 1.1, 1.2);
   const lowerBerth = new THREE.Mesh(berthGeom, darkFrameMat);
   lowerBerth.position.set(0, 0.55, 0);
@@ -846,7 +842,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   upperBerth.position.set(0, 1.75, 0);
   quartersGroup.add(upperBerth);
 
-  // Sleep Berth Mattresses & Pillows
   const mattressMat = new THREE.MeshStandardMaterial({
     color: 0x475569,
     roughness: 0.9,
@@ -859,18 +854,15 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   matUpper.position.set(0, 1.55, 0.1);
   quartersGroup.add(matUpper);
 
-  // Crew Lockers
   const lockerGeom = new THREE.BoxGeometry(1.2, 2.2, 0.6);
   const lockers = new THREE.Mesh(lockerGeom, darkFrameMat);
   lockers.position.set(-2.0, 1.1, 0.2);
   quartersGroup.add(lockers);
 
-  // Galley Hydration Unit & Food Dispenser
   const galley = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.6, 0.5), darkFrameMat);
   galley.position.set(2.0, 0.8, 0.2);
   quartersGroup.add(galley);
 
-  // Warm Ambient Reading Lamps
   const sleepLamp = new THREE.PointLight(0xffd8a8, 1.0, 6);
   sleepLamp.position.set(0, 2.2, 0.5);
   quartersGroup.add(sleepLamp);
@@ -950,7 +942,7 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
   // World Coordinates & Mathematical Physics Helpers
   // -------------------------------------------------------------
   const airlockWorldX = posX;
-  const airlockWorldZ = posZ + 8.2 + airlockLength / 2; // ~ -9.8 + ~1.8 -> ~ -8.0
+  const airlockWorldZ = posZ + 8.2 + airlockLength / 2; // ~ -8.0
   const airlockWorldY = sampleLunarElevation(airlockWorldX, airlockWorldZ);
 
   return {
@@ -1023,14 +1015,12 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
       const rampEnd = vestibuleEnd + rampLength;
       const inCorridor = Math.abs(dx) <= airlockWidth / 2 - 0.2 && dz >= 5.0 && dz <= rampEnd + 0.5;
 
-      // Outer wall boundary constraint
       const maxInnerRadius = habRadius - 0.3;
       if (dist > maxInnerRadius && !inCorridor) {
         const prevDx = currX - posX;
         const prevDz = currZ - posZ;
         const prevDist = Math.hypot(prevDx, prevDz);
 
-        // If player was inside the room, keep them from walking through walls
         if (prevDist <= maxInnerRadius + 0.2) {
           const angle = Math.atan2(dx, dz);
           return {
@@ -1040,7 +1030,6 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
         }
       }
 
-      // Airlock side wall boundary constraint
       if (dz >= 6.0 && dz <= vestibuleEnd) {
         const maxSide = airlockWidth / 2 - 0.35;
         if (Math.abs(dx) > maxSide) {
@@ -1055,22 +1044,18 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     },
 
     updateAnimation: (time: number, dt: number) => {
-      // Rotate central holographic Moon sphere
       holoMoon.rotation.y += dt * 0.45;
       orbitRing1.rotation.z += dt * 0.35;
       orbitRing2.rotation.z -= dt * 0.28;
 
-      // Pulse holographic projection light
       const holoPulse = 1.2 + 0.3 * Math.sin(time * 2.5);
       holoLight.intensity = holoPulse;
 
-      // Pulse geology lab rare mineral crystal
       mineralCrystal.rotation.y += dt * 0.8;
       mineralCrystal.rotation.x += dt * 0.4;
       const crystalPulse = 0.8 + 0.4 * Math.sin(time * 3.5);
       crystalLight.intensity = crystalPulse;
 
-      // Pulse status LEDs and beacons
       const ledPulse = 0.8 + 0.2 * Math.sin(time * 4.0);
       statusLedMat.color.setRGB(0, 1.0 * ledPulse, 0.53 * ledPulse);
     },
