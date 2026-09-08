@@ -385,7 +385,13 @@ function bootstrap(): void {
     initRoverState.pitch,
     initRoverState.roll,
     0,
-    0
+    0,
+    [
+      initRoverState.wheels[0].suspensionCompression,
+      initRoverState.wheels[1].suspensionCompression,
+      initRoverState.wheels[2].suspensionCompression,
+      initRoverState.wheels[3].suspensionCompression,
+    ]
   );
   terrainManager.update(initCharState.x, initCharState.z);
 
@@ -427,7 +433,7 @@ function bootstrap(): void {
         audioEngine.updateRoverSound(rState.speed, true);
         audioEngine.updatePhysiology(dt, false, character.getState().oxygen, false);
 
-        wheelSpinAngle -= (rState.speed / 0.35) * dt;
+        wheelSpinAngle -= (rState.speed / 0.46) * dt;
         roverMesh.updatePose(
           rState.x,
           rState.y,
@@ -436,7 +442,13 @@ function bootstrap(): void {
           rState.pitch,
           rState.roll,
           rState.steerAngle,
-          wheelSpinAngle
+          wheelSpinAngle,
+          [
+            rState.wheels[0].suspensionCompression,
+            rState.wheels[1].suspensionCompression,
+            rState.wheels[2].suspensionCompression,
+            rState.wheels[3].suspensionCompression,
+          ]
         );
 
         const seatPos = new THREE.Vector3();

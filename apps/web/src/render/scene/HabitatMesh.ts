@@ -1356,8 +1356,8 @@ export function createHabitatMesh(posX = -22, posZ = -18): HabitatInstance {
     },
 
     constrainRoverPosition: (
-      currX: number,
-      currZ: number,
+      _currX: number,
+      _currZ: number,
       nextX: number,
       nextZ: number,
       roverRadius = 1.3

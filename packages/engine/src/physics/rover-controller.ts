@@ -238,67 +238,76 @@ export class RoverController {
     const targetRoll = Math.atan2(leftAvgH - rightAvgH, ROVER_TRACK_WIDTH);
 
     if (dt > 0) {
-      this.state.pitch += (targetPitch - this.state.pitch) * Math.min(1.0, dt * 25);
-      this.state.roll += (targetRoll - this.state.roll) * Math.min(1.0, dt * 25);
+      this.state.pitch += (targetPitch - this.state.pitch) * Math.min(1.0, dt * 15);
+      this.state.roll += (targetRoll - this.state.roll) * Math.min(1.0, dt * 15);
     } else {
       this.state.pitch = targetPitch;
       this.state.roll = targetRoll;
     }
 
-    // Compute minimum chassis center Y so NO wheel penetrates the ground
+    // Compute required chassis Y for each wheel to be exactly touching the ground at rest (0 suspension offset)
     const localHubYs: number[] = [];
-    let minAllowedChassisY = Number.NEGATIVE_INFINITY;
-
+    const requiredChassisYs: number[] = [];
     for (let i = 0; i < 4; i++) {
       const o = offsets[i]!;
-      const gh = wheelGroundH[i]!;
       const localHubY = -ROVER_PIVOT_OFFSET_Y - Math.sin(this.state.pitch) * o.lz + Math.sin(this.state.roll) * o.lx;
       localHubYs.push(localHubY);
+      const reqY = wheelGroundH[i]! + ROVER_TIRE_RADIUS - localHubY;
+      requiredChassisYs.push(reqY);
+    }
 
-      // Chassis Y must satisfy: chassisY + localHubY - ROVER_TIRE_RADIUS >= gh
-      const requiredChassisY = gh + ROVER_TIRE_RADIUS - localHubY;
-      if (requiredChassisY > minAllowedChassisY) {
-        minAllowedChassisY = requiredChassisY;
-      }
+    const avgRequiredChassisY = (requiredChassisYs[0]! + requiredChassisYs[1]! + requiredChassisYs[2]! + requiredChassisYs[3]!) / 4;
+    const MAX_COMPRESSION = 0.3;
+    const minAllowedChassisY = Math.max(...requiredChassisYs) - MAX_COMPRESSION;
+    
+    let targetY = avgRequiredChassisY;
+    if (targetY < minAllowedChassisY) {
+      targetY = minAllowedChassisY;
     }
 
     if (dt > 0) {
-      if (this.state.vy !== 0 || this.state.y > minAllowedChassisY + 0.3) {
+      if (this.state.vy !== 0 || this.state.y > targetY + 0.5) {
         // Airborne in vacuum
         this.state.vy -= LUNAR_GRAVITY * dt;
         this.state.y += this.state.vy * dt;
-        if (this.state.y <= minAllowedChassisY) {
-          this.state.y = minAllowedChassisY;
+        if (this.state.y <= targetY) {
+          this.state.y = targetY;
           this.state.vy = 0;
           this.state.isGrounded = true;
         } else {
           this.state.isGrounded = false;
         }
       } else {
-        // Normal grounded driving: responsive suspension follow + HARD ANTI-SINK CLAMP
+        // Grounded driving: smooth follow
         this.state.isGrounded = true;
         this.state.vy = 0;
-        const targetY = minAllowedChassisY + ROVER_REST_CLEARANCE;
-        this.state.y += (targetY - this.state.y) * Math.min(1.0, dt * 30);
+        this.state.y += (targetY - this.state.y) * Math.min(1.0, dt * 20);
         if (this.state.y < minAllowedChassisY) {
           this.state.y = minAllowedChassisY;
         }
       }
     } else {
-      this.state.y = minAllowedChassisY + ROVER_REST_CLEARANCE;
+      this.state.y = targetY;
       this.state.isGrounded = true;
       this.state.vy = 0;
     }
 
-    // Update wheel worldY and grounded state
+    // Update wheels visual suspension offsets
     for (let i = 0; i < 4; i++) {
       const w = this.state.wheels[i]!;
       const gh = wheelGroundH[i]!;
       const localHubY = localHubYs[i]!;
-      w.worldY = this.state.y + localHubY;
-      const tireBottom = w.worldY - ROVER_TIRE_RADIUS;
-      w.isGrounded = tireBottom <= gh + 0.06;
-      w.suspensionCompression = Math.max(0, gh - tireBottom + 0.06);
+      
+      // Calculate how much the wheel needs to move locally on Y to touch the ground
+      // gh = this.state.y + localHubY + suspensionOffset - ROVER_TIRE_RADIUS
+      let suspensionOffset = gh + ROVER_TIRE_RADIUS - (this.state.y + localHubY);
+      
+      // Clamp suspension travel (droop vs compress)
+      suspensionOffset = Math.max(-0.25, Math.min(MAX_COMPRESSION, suspensionOffset));
+      
+      w.suspensionCompression = suspensionOffset;
+      w.worldY = this.state.y + localHubY + suspensionOffset;
+      w.isGrounded = (w.worldY - ROVER_TIRE_RADIUS) <= gh + 0.1;
     }
   }
 }

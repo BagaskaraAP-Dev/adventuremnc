@@ -17,7 +17,8 @@ export interface RoverMeshInstance {
     pitch: number,
     roll: number,
     steerAngle: number,
-    wheelSpin: number
+    wheelSpin: number,
+    suspensions?: [number, number, number, number]
   ) => void;
 }
 
@@ -311,7 +312,8 @@ export function createRoverMesh(): RoverMeshInstance {
     pitch: number,
     roll: number,
     steerAngle: number,
-    wheelSpin: number
+    wheelSpin: number,
+    suspensions?: [number, number, number, number]
   ) => {
     group.position.set(x, y, z);
     group.rotation.set(0, yaw, 0, 'YXZ');
@@ -330,6 +332,14 @@ export function createRoverMesh(): RoverMeshInstance {
     fr.wheelSpinGroup.rotation.x = wheelSpin;
     rl.wheelSpinGroup.rotation.x = wheelSpin;
     rr.wheelSpinGroup.rotation.x = wheelSpin;
+
+    // Apply suspension offsets
+    if (suspensions) {
+      fl.wheelPivot.position.y = -0.15 + suspensions[0];
+      fr.wheelPivot.position.y = -0.15 + suspensions[1];
+      rl.wheelPivot.position.y = -0.15 + suspensions[2];
+      rr.wheelPivot.position.y = -0.15 + suspensions[3];
+    }
   };
 
   const getDriverSeatTransform = (targetPos: THREE.Vector3, targetQuat: THREE.Quaternion) => {
