@@ -4,6 +4,7 @@ import {
   sampleLunarElevation,
   EvaCharacterController,
   RoverController,
+  ROVER_REST_HEIGHT,
 } from '@adventuremnc/engine';
 import { WebGLRendererWrapper } from './render/Renderer';
 import { createLunarScene } from './render/scene/LunarScene';
@@ -294,7 +295,8 @@ function bootstrap(): void {
       toastMsg = '🚜 MOBIL BULAN DIPANGGIL LANGSUNG KE DEPAN ANDA!';
     }
 
-    const targetY = sampleLunarElevation(targetX, targetZ) + 0.5;
+    const groundY = habitat.getFloorHeight(targetX, targetZ) ?? sampleLunarElevation(targetX, targetZ);
+    const targetY = groundY + ROVER_REST_HEIGHT;
     rover.setState({
       x: targetX,
       y: targetY,
@@ -400,6 +402,7 @@ function bootstrap(): void {
       if (gameMode === 'ROVER_DRIVING') {
         const roverInputs = inputManager.getRoverInputs();
         rover.update(roverInputs, dt, {
+          getGroundElevation: (x, z) => habitat.getFloorHeight(x, z) ?? sampleLunarElevation(x, z),
           constrainPosition: (currX, currZ, nextX, nextZ, radius) =>
             habitat.constrainRoverPosition(currX, currZ, nextX, nextZ, radius),
         });

@@ -4,7 +4,8 @@ import {
   ROVER_BRAKE_DECEL,
   FIXED_DT,
 } from '@adventuremnc/shared';
-import { RoverController } from './rover-controller';
+import { RoverController, ROVER_TIRE_RADIUS } from './rover-controller';
+import { sampleLunarElevation } from '../terrain/lunar-dem';
 
 describe('RoverController Dynamics & Braking', () => {
   it('documents and verifies low-traction braking distance matches analytic d = v^2 / (2a)', () => {
@@ -54,5 +55,22 @@ describe('RoverController Dynamics & Braking', () => {
     const rover = new RoverController(50, 50);
     expect(rover.canInteract(51, 51)).toBe(true);
     expect(rover.canInteract(55, 55)).toBe(false);
+  });
+
+  it('guarantees rover wheels never sink below terrain elevation when driving', () => {
+    const rover = new RoverController(-15, -4.5);
+
+    // Drive forward at full throttle across terrain and roads for 120 steps (2 seconds)
+    for (let step = 0; step < 120; step++) {
+      rover.update({ throttle: 1, steer: 0.1, handbrake: false }, FIXED_DT);
+      const state = rover.getState();
+
+      for (const w of state.wheels) {
+        const groundH = sampleLunarElevation(w.worldX, w.worldZ);
+        const wheelBottom = w.worldY - ROVER_TIRE_RADIUS;
+        // The bottom of the tire must never penetrate into the ground (tolerance 0.001m)
+        expect(wheelBottom).toBeGreaterThanOrEqual(groundH - 0.001);
+      }
+    }
   });
 });
