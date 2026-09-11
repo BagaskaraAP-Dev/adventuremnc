@@ -257,13 +257,10 @@ export class RoverController {
     }
 
     const avgRequiredChassisY = (requiredChassisYs[0]! + requiredChassisYs[1]! + requiredChassisYs[2]! + requiredChassisYs[3]!) / 4;
-    const MAX_COMPRESSION = 0.3;
-    const minAllowedChassisY = Math.max(...requiredChassisYs) - MAX_COMPRESSION;
+    const maxRequiredChassisY = Math.max(...requiredChassisYs);
+    const minAllowedChassisY = maxRequiredChassisY;
     
-    let targetY = avgRequiredChassisY;
-    if (targetY < minAllowedChassisY) {
-      targetY = minAllowedChassisY;
-    }
+    const targetY = Math.max(avgRequiredChassisY + ROVER_REST_CLEARANCE, maxRequiredChassisY);
 
     if (dt > 0) {
       if (this.state.vy !== 0 || this.state.y > targetY + 0.5) {
@@ -278,10 +275,10 @@ export class RoverController {
           this.state.isGrounded = false;
         }
       } else {
-        // Grounded driving: smooth follow
+        // Grounded driving: smooth responsive follow + HARD ANTI-SINK CLAMP
         this.state.isGrounded = true;
         this.state.vy = 0;
-        this.state.y += (targetY - this.state.y) * Math.min(1.0, dt * 20);
+        this.state.y += (targetY - this.state.y) * Math.min(1.0, dt * 25);
         if (this.state.y < minAllowedChassisY) {
           this.state.y = minAllowedChassisY;
         }
@@ -303,7 +300,8 @@ export class RoverController {
       let suspensionOffset = gh + ROVER_TIRE_RADIUS - (this.state.y + localHubY);
       
       // Clamp suspension travel (droop vs compress)
-      suspensionOffset = Math.max(-0.25, Math.min(MAX_COMPRESSION, suspensionOffset));
+      const MAX_SUSPENSION_TRAVEL = 0.25;
+      suspensionOffset = Math.max(-0.25, Math.min(MAX_SUSPENSION_TRAVEL, suspensionOffset));
       
       w.suspensionCompression = suspensionOffset;
       w.worldY = this.state.y + localHubY + suspensionOffset;

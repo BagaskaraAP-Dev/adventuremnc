@@ -83,12 +83,16 @@ export function createRegolithMaterial(sunLight: THREE.DirectionalLight): THREE.
       struct RoadSplatInfo {
         float blend;
         vec2 uv;
+        vec2 dir;
+        vec2 perp;
       };
 
       RoadSplatInfo calculateRoadSplat(vec2 worldXz) {
         float minD = 9999.0;
         float bestLateral = 0.0;
         float bestT = 0.0;
+        vec2 bestDir = vec2(0.0, 1.0);
+        vec2 bestPerp = vec2(1.0, 0.0);
 
         for (int i = 0; i < 12; i++) {
           if (i >= uNumRoadSegments) break;
@@ -107,6 +111,8 @@ export function createRegolithMaterial(sunLight: THREE.DirectionalLight): THREE.
               vec2 perp = vec2(-dir.y, dir.x);
               bestLateral = dot(pa, perp);
               bestT = h * sqrt(lenSq);
+              bestDir = dir;
+              bestPerp = perp;
             }
           }
         }
@@ -114,7 +120,7 @@ export function createRegolithMaterial(sunLight: THREE.DirectionalLight): THREE.
         float halfW = uRoadWidth * 0.5;
         float blend = 1.0 - smoothstep(halfW * 0.8, halfW * 1.15, minD);
         vec2 uv = vec2(clamp(bestLateral / uRoadWidth + 0.5, 0.0, 1.0), bestT * 0.125);
-        return RoadSplatInfo(blend, uv);
+        return RoadSplatInfo(blend, uv, bestDir, bestPerp);
       }
 
       ${shader.fragmentShader}
@@ -159,10 +165,16 @@ export function createRegolithMaterial(sunLight: THREE.DirectionalLight): THREE.
       vec3 microN = texture2D(uDetailNormal, vWorldPos.xz * 0.65).xyz * 2.0 - 1.0;
       normal = normalize(normal + microN * 0.35);
 
-      // Compacted chevron tire tread rut normals
+      // Compacted chevron tire tread rut normals oriented in true road tangent world coordinates
       if (roadInfo.blend > 0.001) {
         vec3 roadN = texture2D(uRoadNormal, roadInfo.uv).xyz * 2.0 - 1.0;
-        normal = normalize(mix(normal, normal + roadN * 0.65, roadInfo.blend));
+        vec3 worldPerturb = vec3(
+          roadInfo.perp.x * roadN.x + roadInfo.dir.x * roadN.y,
+          0.0,
+          roadInfo.perp.y * roadN.x + roadInfo.dir.y * roadN.y
+        );
+        vec3 viewPerturb = (viewMatrix * vec4(worldPerturb, 0.0)).xyz;
+        normal = normalize(normal + viewPerturb * (0.45 * roadInfo.blend));
       }
       `
     );
