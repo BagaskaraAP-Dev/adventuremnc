@@ -14,6 +14,7 @@
 - **Vacuum Mechanics:** Total absence of atmospheric drag means zero terminal velocity when falling from crater rims, accompanied by strictly zero air-control once airborne.
 - **Extreme Contrast Photometry:** Accurate lunar optical behavior featuring low-angle polar solar illumination (1.8° elevation), hard un-scattered shadows, tidal-locked Earthrise with secondary Earthshine, and an authentic **opposition effect** (Heiligenschein retroreflective surge).
 - **Apollo-Accurate Locomotion:** Kinetic character simulation replicating the loping bounding gait used by Apollo astronauts to traverse loose lunar regolith.
+- **EVA Helmet:** Smooth pressure shell, forward-facing gold visor with a dark sealing rim, and a neck seal that follows walking and rover poses.
 
 ---
 

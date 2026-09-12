@@ -70,6 +70,10 @@
 - Airlock service triggers on entry into interaction range and does not resurrect dead characters. Pressure equalization is immediate gameplay feedback, with the existing airlock sound; no new timed chamber simulation is introduced.
 - Vehicle camera changes interpolate framing without resets or yaw snaps. Respawn relocates directly using the current camera profile beneath a brief fade, avoiding a camera flight across kilometers of terrain. Both headlights toggle together and keyboard repeat does not retrigger actions.
 
+### 16. EVA Helmet Surface Alignment
+- Replace the offset, sideways visor hemisphere with a forward-facing spherical cap. Concentric, increasing radii keep the shell and sealing rim behind the visor, avoiding asymmetric clipping. Higher sphere segmentation smooths the silhouette; the neck seal connects the helmet to the suit.
+- Geometry raycast regression tests check front visibility and shell coverage from the sides, crown, and back; pose checks retain helmet attachment during walking and rover seating.
+
 ## Remaining Release Dependencies
 - Configure production Redis variables and deploy the Vercel project with root `apps/web`; verify authenticated save/reload on the public domain. Repository verification alone does not establish live deployment health.
 - Corporate Security drone pursuit is not implemented; Level 2 currently drives the Hostile warning and return-to-habitat requirement.

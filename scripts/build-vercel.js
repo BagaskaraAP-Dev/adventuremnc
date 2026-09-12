@@ -37,7 +37,7 @@ for (const fn of functions) {
     resolve(fnDir, '.vc-config.json'),
     JSON.stringify(
       {
-        runtime: 'nodejs20.x',
+        runtime: 'nodejs24.x',
         handler: 'index.js',
         launcherType: 'Nodejs',
         maxDuration: 30,
@@ -58,7 +58,7 @@ for (const fn of functions) {
     outfile: resolve(fnDir, 'index.js'),
   });
 
-  console.log(`Bundled serverless function: api/${fn.name}`);
+  console.info(`Bundled serverless function: api/${fn.name}`);
 }
 
-console.log('Vercel Build Output v3 prepared successfully.');
+console.info('Vercel Build Output v3 prepared successfully.');

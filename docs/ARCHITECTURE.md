@@ -16,6 +16,7 @@
    - Three.js WebGL2 renderer.
    - Decoupled render loop with transform interpolation.
    - DOM HUD owns presentation and browser lifecycle; no React runtime is used.
+   - `AstronautMesh` owns helmet geometry: concentric shell, rim, and visor caps oriented toward character-local +Z, attached to the animated body with a neck seal.
 
 4. `apps/api`: Backend service.
    - Shared Node HTTP handler used by the local server and Vercel Serverless endpoints for anonymous sessions and save commands.

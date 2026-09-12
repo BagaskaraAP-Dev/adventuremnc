@@ -28,8 +28,8 @@ export function createAstronautMesh(): AstronautMeshInstance {
 
   const visorMaterial = new THREE.MeshStandardMaterial({
     color: 0xdca832, // Gold coated anti-radiation thermal visor
-    roughness: 0.12,
-    metalness: 0.92,
+    roughness: 0.22,
+    metalness: 0.72,
   });
 
   const plssMaterial = new THREE.MeshStandardMaterial({
@@ -48,18 +48,40 @@ export function createAstronautMesh(): AstronautMeshInstance {
   torso.castShadow = true;
   bodyGroup.add(torso);
 
-  // 2. Helmet: Polycarbonate bubble with gold visor
-  const helmetGeo = new THREE.SphereGeometry(0.24, 18, 18);
-  const helmet = new THREE.Mesh(helmetGeo, suitMaterial);
-  helmet.position.set(0, 1.55, 0);
-  helmet.castShadow = true;
-  bodyGroup.add(helmet);
+  // 2. Helmet: concentric surfaces keep the visor outside the pressure shell.
+  // The astronaut faces +Z, matching the boots and seated forward direction.
+  const helmetGroup = new THREE.Group();
+  helmetGroup.name = 'helmet';
+  helmetGroup.position.set(0, 1.55, 0);
+  bodyGroup.add(helmetGroup);
 
-  const visorGeo = new THREE.SphereGeometry(0.21, 16, 16, 0, Math.PI, 0, Math.PI);
+  const helmetGeo = new THREE.SphereGeometry(0.24, 48, 32);
+  const helmet = new THREE.Mesh(helmetGeo, suitMaterial);
+  helmet.name = 'helmet-shell';
+  helmet.castShadow = true;
+  helmetGroup.add(helmet);
+
+  // A polar cap rotated from +Y to +Z is symmetric around the face.
+  // Separate radii prevent the shell from clipping through the gold surface.
+  const rimGeo = new THREE.SphereGeometry(0.246, 48, 24, 0, Math.PI * 2, 0, 1.04);
+  rimGeo.rotateX(Math.PI / 2);
+  const rim = new THREE.Mesh(rimGeo, jointMaterial);
+  rim.name = 'helmet-visor-rim';
+  rim.castShadow = true;
+  helmetGroup.add(rim);
+
+  const visorGeo = new THREE.SphereGeometry(0.25, 48, 24, 0, Math.PI * 2, 0, 0.95);
+  visorGeo.rotateX(Math.PI / 2);
   const visor = new THREE.Mesh(visorGeo, visorMaterial);
-  visor.position.set(0, 1.55, 0.08);
-  visor.rotation.y = -Math.PI / 2;
-  bodyGroup.add(visor);
+  visor.name = 'helmet-visor';
+  visor.castShadow = true;
+  helmetGroup.add(visor);
+
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.19, 0.09, 32), jointMaterial);
+  collar.name = 'helmet-neck-seal';
+  collar.position.y = -0.18;
+  collar.castShadow = true;
+  helmetGroup.add(collar);
 
   // 3. PLSS Backpack (Portable Life Support System)
   const plssGeo = new THREE.BoxGeometry(0.44, 0.68, 0.26);
