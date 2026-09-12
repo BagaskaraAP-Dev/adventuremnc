@@ -38,7 +38,7 @@ for (const fn of functions) {
     JSON.stringify(
       {
         runtime: 'nodejs24.x',
-        handler: 'index.js',
+        handler: 'index.mjs',
         launcherType: 'Nodejs',
         maxDuration: 30,
       },
@@ -55,7 +55,7 @@ for (const fn of functions) {
     banner: {
       js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
     },
-    outfile: resolve(fnDir, 'index.js'),
+    outfile: resolve(fnDir, 'index.mjs'),
   });
 
   console.info(`Bundled serverless function: api/${fn.name}`);

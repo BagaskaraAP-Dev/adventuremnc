@@ -59,6 +59,7 @@
 - The Vite project owns its `/api` functions so the public domain and browser use the same origin. A shared HTTP adapter invokes the same `CloudStore` command validation as local development.
 - Production persistence uses Upstash-compatible Redis REST, authenticated only with server environment variables. Filesystem saves remain a development option; Vercel instances must never use ephemeral disk as a durable save store.
 - A Lua compare-and-set checks the previous serialized record before storing the new state. A concurrent request retries from the winner's state, so repeated completion events cannot award credits twice across instances. Redis REST calls time out after five seconds; missing configuration and storage failures return 503.
+- Prebuilt functions use Node 24 and an explicit `.mjs` entry point so Vercel loads the bundled ES module without relying on the repository's package.json.
 - Anonymous bearer sessions preserve the existing contract. Cross-device recovery, account authentication, and abuse-rate limiting remain separate work; the current telemetry travel budget is not a complete movement anti-cheat system.
 
 ### 14. Security Alert and Cargo Clearance
