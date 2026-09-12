@@ -1,3 +1,7 @@
+import { CloudSaveManager } from './save/CloudSaveManager';
+import { ContractBoard } from './ui/ContractBoard';
+import { missionTarget, stepMission } from '@adventuremnc/engine';
+import type { MissionState } from '@adventuremnc/shared';
 import * as THREE from 'three';
 import {
   FixedTimestepLoop,
@@ -113,6 +117,62 @@ function bootstrap(): void {
   const hud = new HUD();
   const ctfManager = new CtfManager();
 
+  const cloud = new CloudSaveManager();
+  const board = new ContractBoard();
+  ctfManager.terminal.attachPanel(board.panel);
+  let mission: MissionState | undefined;
+  let cloudBusy = false;
+  let cloudStatus = 'Connecting…';
+  let syncElapsed = 0;
+  let pendingRespawn = false;
+  const waypoint = new THREE.Mesh(new THREE.ConeGeometry(3, 9, 6), new THREE.MeshBasicMaterial({ color: 0x66ffee }));
+  waypoint.visible = false;
+  lunarScene.scene.add(waypoint);
+  function playerPosition() {
+    const state = gameMode === 'ROVER_DRIVING' ? rover.getState() : character.getState();
+    return { x: state.x, y: state.y, z: state.z };
+  }
+  function refreshBoard(): void {
+    const pos = playerPosition();
+    board.render(cloud.state, gameMode === 'EVA_ASTRONAUT' && Math.hypot(pos.x + 22, pos.z + 10) <= 15, cloudBusy, cloudStatus);
+  }
+  function receiveMission(): void {
+    const missions = cloud.state?.missions ?? [];
+    mission = missions.find(m => m.status === 'active') ?? missions[missions.length - 1];
+  }
+  async function syncCloud(action?: 'interact' | 'respawn' | MissionState['id']): Promise<void> {
+    if (action === 'respawn') pendingRespawn = true;
+    if (cloudBusy || !cloud.state) return;
+    if (pendingRespawn) { action = 'respawn'; pendingRespawn = false; }
+    cloudBusy = true;
+    refreshBoard();
+    try {
+      const state = character.getState();
+      if (action === 'respawn') await cloud.command({ type: 'respawn' });
+      else await cloud.command({ type: 'save', position: playerPosition(), oxygen: state.oxygen, dead: state.isDead });
+      if (action === 'interact') await cloud.command({ type: 'interact' });
+      else if (action && action !== 'respawn') await cloud.command({ type: 'accept', id: action });
+      receiveMission();
+      cloudStatus = 'Cloud saved';
+    } catch (error) {
+      cloudStatus = error instanceof Error ? error.message : 'Cloud sync failed';
+    } finally {
+      cloudBusy = false;
+      refreshBoard();
+    }
+  }
+  board.onAccept = id => { void syncCloud(id); };
+  void cloud.connect().then(state => {
+    character.setState({ ...state.position, vx: 0, vy: 0, vz: 0 });
+    receiveMission();
+    cloudStatus = 'Cloud connected';
+    refreshBoard();
+  }).catch(() => {
+    cloudStatus = 'Cloud offline — reload after starting API';
+    refreshBoard();
+  });
+  refreshBoard();
+
   // Wire CTF audio effects
   ctfManager.terminal.onPlaySound = (type) => {
     if (type === 'click') {
@@ -173,6 +233,17 @@ function bootstrap(): void {
   // Interaction: Habitat Airlock Cycle or Vehicle Enter / Exit
   inputManager.onInteract = () => {
     const charState = character.getState();
+    if (ctfManager.isModalOpen()) return;
+    const target = mission ? missionTarget(mission) : undefined;
+    if (gameMode === 'EVA_ASTRONAUT' && !charState.isDead && mission?.status === 'active' && target && Math.hypot(charState.x - target.x, charState.z - target.z) <= target.radius) {
+      void syncCloud('interact');
+      return;
+    }
+    if (gameMode === 'EVA_ASTRONAUT' && habitat.isInside(charState.x, charState.z) && !habitat.canInteractAirlock(charState.x, charState.z)) {
+      refreshBoard();
+      ctfManager.terminal.show();
+      return;
+    }
 
     // Priority 1: Habitat Airlock Interaction (Cycle, Refill Life Support & Save)
     if (gameMode === 'EVA_ASTRONAUT' && habitat.canInteractAirlock(charState.x, charState.z)) {
@@ -361,6 +432,7 @@ function bootstrap(): void {
     });
 
     gameMode = 'EVA_ASTRONAUT';
+    void syncCloud('respawn');
     astronautMesh.setSeatedPose(false);
     thirdPersonCamera.setTargetProfile(3.6, 1.25);
     thirdPersonCamera.reset(respawnX, respawnGroundY, respawnZ);
@@ -404,6 +476,7 @@ function bootstrap(): void {
   const gameLoop = new FixedTimestepLoop({
     stepSimulation: (dt) => {
       const currentTimeSec = performance.now() / 1000;
+      if (ctfManager.isModalOpen()) inputManager.clearKeys();
 
       if (gameMode === 'ROVER_DRIVING') {
         const roverInputs = inputManager.getRoverInputs();
@@ -557,6 +630,12 @@ function bootstrap(): void {
         terrainManager.update(pos.x, pos.z);
       }
 
+      if (mission) mission = stepMission(mission, character.getState().oxygen, character.getState().isDead);
+      const target = mission?.status === 'active' ? missionTarget(mission) : undefined;
+      waypoint.visible = !!target;
+      if (target) waypoint.position.set(target.x, sampleLunarElevation(target.x, target.z) + 12, target.z);
+      syncElapsed += dt;
+      if (syncElapsed >= 2) { syncElapsed = 0; void syncCloud(); }
       dustParticles.update(currentTimeSec);
       habitat.updateAnimation(currentTimeSec, dt);
       roverBay.updateAnimation(currentTimeSec);
@@ -594,6 +673,8 @@ function bootstrap(): void {
       const distHab = habitat.distanceToAirlock(charState.x, charState.z);
       const distRover = Math.hypot(charState.x - roverState.x, charState.z - roverState.z);
 
+      board.track(mission, playerPosition());
+      refreshBoard();
       hud.update({
         x: gameMode === 'ROVER_DRIVING' ? roverState.x : charState.x,
         y: gameMode === 'ROVER_DRIVING' ? roverState.y : charState.y,

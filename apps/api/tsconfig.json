@@ -6,7 +6,14 @@
     "outDir": "dist"
   },
   "references": [
-    { "path": "../../packages/shared" }
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/engine"
+    }
   ],
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

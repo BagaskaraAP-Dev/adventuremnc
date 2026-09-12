@@ -52,5 +52,9 @@
 ### 11. Sub-Grid Road Elevation Alignment & Tangent-Space Normal Mapping
 - Rationale: A 6-meter road corridor cannot analytically suppress 65m rolling swells by 85% when terrain mesh chunks have a 15.625m vertex resolution. The quadtree mesh vertices fall outside the 4.2m damping radius, causing the rendered road polygons to stay at full swell height while vehicles sampling the analytical equation at their exact position sank 3-5 meters underneath the lunar surface. We removed sub-grid swell damping so analytical physics elevation and rendered polygon surfaces match within millimeters everywhere. Furthermore, road rut normal perturbations were transformed through road tangent (`dir`) and perpendicular (`perp`) vectors into world space and view space, preventing unprojected tangent vectors from skewing normals towards the camera.
 
-## Known Gaps (M3)
-- Mission runner and contract board (scheduled for M6).
+### 12. Data-Driven Mission Scripting & Server-Authoritative Economy (M5/M6)
+- Rationale: To allow rapid creation and tuning of contracts without modifying engine core logic, mission contracts (Cold Courier, Ridge Surveyor, Illegal Salvage) are specified declaratively as immutable data definitions in `packages/engine/src/missions`. The simulation tracks objective sequences, timers, and proximity headless in Node.js. To enforce anti-tamper security in line with GTA-style contract progression, credits and mission completion rewards are strictly server-authoritative (`apps/api`): clients submit interaction events and telemetry via Zod schemas, and the server validates deadline constraints and proximity before disbursing rewards.
+
+## Known Gaps
+- Cloud-hosted Postgres/Redis migration for cross-device multi-server persistence (scheduled for production hardening M8).
+- Security Alert escalation levels with automated Corporate Security enforcement drones (scheduled for M6 phase 2).

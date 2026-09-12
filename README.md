@@ -25,9 +25,9 @@
 | **M1: Terrain & Lighting** | WebGL2 Three.js renderer, 8×8 km Shackleton DEM quadtree LOD, opposition shader, and Earthrise | Complete |
 | **M2: Character Controller** | EVA astronaut model, loping gait physics, vacuum ballistics, and GTA-style third-person camera | Complete |
 | **M3: Mining Rover** | Raycast vehicle suspension, low-traction drifting, and GPU ballistic dust particle system | Complete |
-| **M4: Survival Systems** | O₂ life support depletion, cryogenic PSR thermal hazards, and hab airlocks | Planned |
-| **M5: Backend & Saves** | Fastify service, PostgreSQL schema, and server-authoritative state validation | Planned |
-| **M6: Mission Runner** | Contract board, mission scripting engine, and Security Alert escalation levels | Planned |
+| **M4: Survival Systems** | O₂ life support depletion, cryogenic PSR thermal hazards, and hab airlocks | Complete |
+| **M5: Backend & Saves** | HTTP save service, Zod state validation, and server-authoritative progression | Complete (Local Store) |
+| **M6: Mission Runner** | Contract board, mission scripting engine, and sequential objective runners | Complete |
 
 ---
 

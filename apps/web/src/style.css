@@ -694,3 +694,10 @@ body, html {
 }
 
 
+
+.contract-board { padding: 12px; max-height: 40vh; overflow: auto; color: #aaffdd; background: #102025; }
+.contract-board article { display: flex; align-items: center; gap: 12px; border-top: 1px solid #335544; }
+.contract-board p { white-space: pre-line; font: 12px monospace; flex: 1; }
+.contract-board button { padding: 8px; cursor: pointer; }
+.contract-board button:disabled { opacity: .45; cursor: default; }
+.mission-tracker { position: fixed; top: 90px; right: 20px; max-width: 350px; padding: 12px; background: #07151cdd; color: #aaffdd; font: 13px monospace; white-space: pre-line; pointer-events: none; z-index: 20; }

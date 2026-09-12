@@ -8,6 +8,10 @@ export class TerminalModal {
   private commandHistory: string[] = [];
   private historyIndex: number = -1;
 
+  public attachPanel(panel: HTMLElement): void {
+    this.container.querySelector('.term-window')?.prepend(panel);
+  }
+
   public onFlagDecrypted?: (flag: string) => void;
   public onPlaySound?: (type: 'click' | 'quindar') => void;
 

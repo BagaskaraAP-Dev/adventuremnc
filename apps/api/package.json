@@ -6,12 +6,16 @@
   "types": "./src/index.ts",
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "start": "vite-node src/server.ts",
+    "dev": "vite-node src/server.ts"
   },
   "dependencies": {
-    "@adventuremnc/shared": "workspace:*"
+    "@adventuremnc/shared": "workspace:*",
+    "@adventuremnc/engine": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vite-node": "^3.0.6"
   }
 }
