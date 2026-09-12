@@ -38,16 +38,23 @@ export const MissionStateSchema = z.object({
   objective: z.number().int().min(0).max(2),
   elapsed: z.number().finite().nonnegative(),
 }).strict();
+export const SecurityStateSchema = z.object({
+  level: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  elapsed: z.number().finite().nonnegative(),
+}).strict();
+export type SecurityState = z.infer<typeof SecurityStateSchema>;
 export const CloudStateSchema = z.object({
   version: z.literal(1), revision: z.number().int().nonnegative(),
   credits: z.number().int().nonnegative(), position: PlayerPositionSchema,
   missions: z.array(MissionStateSchema).max(3),
+  security: SecurityStateSchema.default({ level: 0, elapsed: 0 }),
 }).strict();
 export const CloudCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('save'), position: PlayerPositionSchema, oxygen: z.number().finite().min(0).max(100), dead: z.boolean() }).strict(),
   z.object({ type: z.literal('accept'), id: MissionStateSchema.shape.id }).strict(),
   z.object({ type: z.literal('interact') }).strict(),
   z.object({ type: z.literal('respawn') }).strict(),
+  z.object({ type: z.literal('airlock') }).strict(),
 ]);
 export type PlayerPosition = z.infer<typeof PlayerPositionSchema>;
 export type MissionState = z.infer<typeof MissionStateSchema>;

@@ -95,10 +95,10 @@ export function createLunarRoadTextures(width = 1024, height = 512): LunarRoadPb
 
       const noise = roadNoise2D(normX * 8.0, normY * 16.0) * 15;
 
-      let r = 78 + noise;
-      let g = 76 + noise;
-      let b = 74 + noise;
-      let rough = 200;
+      let r: number;
+      let g: number;
+      let b: number;
+      let rough: number;
       let normNx = 0;
       let normNy = 0;
 

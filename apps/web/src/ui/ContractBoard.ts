@@ -16,10 +16,10 @@ export class ContractBoard {
     document.body.append(this.tracker);
   }
   render(state: CloudState | null, nearBase: boolean, busy: boolean, connection: string): void {
-    const key = JSON.stringify([state?.credits, state?.missions.map(m => [m.id, m.status]), nearBase, busy, connection]);
+    const key = JSON.stringify([state?.credits, state?.security.level, state?.missions.map(m => [m.id, m.status]), nearBase, busy, connection]);
     if (key === this.rendered) return;
     this.rendered = key;
-    this.message.textContent = `${state?.credits ?? 0} credits • ${connection}${nearBase ? '' : ' • Return to Habitat Base to accept'}`;
+    this.message.textContent = `${state?.credits ?? 0} credits • ${connection}${state?.security.level ? ' • Clear security at the airlock' : ''}${nearBase ? '' : ' • Return to Habitat Base to accept'}`;
     this.list.replaceChildren();
     for (const contract of CONTRACTS) {
       const row = document.createElement('article');
@@ -28,7 +28,7 @@ export class ContractBoard {
       description.textContent = `${contract.title} — ${contract.reward} credits [${status}]\n${contract.description} Risk: ${contract.risk}`;
       const button = document.createElement('button');
       button.textContent = 'Accept Contract';
-      button.disabled = !state || !nearBase || busy || status === 'completed' || state.missions.some(m => m.status === 'active');
+      button.disabled = !state || state.security.level > 0 || !nearBase || busy || status === 'completed' || state.missions.some(m => m.status === 'active');
       button.onclick = () => this.onAccept?.(contract.id);
       row.append(description, button);
       this.list.append(row);

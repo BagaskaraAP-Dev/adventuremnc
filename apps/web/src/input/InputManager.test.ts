@@ -1,0 +1,21 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { InputManager } from './InputManager';
+afterEach(() => vi.unstubAllGlobals());
+it('toggles headlights once per press and ignores typing into terminals', () => {
+  const windowTarget = new EventTarget();
+  const doc: { activeElement: { tagName: string } | null } = { activeElement: null };
+  vi.stubGlobal('window', windowTarget);
+  vi.stubGlobal('document', doc);
+  const input = new InputManager();
+  input.onToggleHeadlights = vi.fn();
+  const press = (repeat: boolean) => windowTarget.dispatchEvent(Object.assign(new Event('keydown'), { code: 'KeyL', repeat }));
+  press(false);
+  press(true);
+  expect(input.onToggleHeadlights).toHaveBeenCalledTimes(1);
+  doc.activeElement = { tagName: 'INPUT' };
+  press(false);
+  expect(input.onToggleHeadlights).toHaveBeenCalledTimes(1);
+  doc.activeElement = null;
+  press(false);
+  expect(input.onToggleHeadlights).toHaveBeenCalledTimes(2);
+});

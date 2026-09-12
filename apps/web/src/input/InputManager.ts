@@ -6,6 +6,7 @@ export class InputManager {
   public onRespawn?: () => void;
   public onInteract?: () => void;
   public onToggleAudio?: () => void;
+  public onToggleHeadlights?: () => void;
   public onRecallRover?: () => void;
 
   constructor() {
@@ -19,6 +20,8 @@ export class InputManager {
       }
 
       this.keys.add(e.code);
+      if (e.repeat) return;
+      if (e.code === 'KeyL') this.onToggleHeadlights?.();
       if (e.code === 'KeyV' && this.onToggleCameraMode) {
         this.onToggleCameraMode();
       }

@@ -12,7 +12,8 @@
     "@adventuremnc/engine": "workspace:*",
     "@adventuremnc/shared": "workspace:*",
     "@dimforge/rapier3d-compat": "0.20.0",
-    "three": "0.185.1"
+    "three": "0.185.1",
+    "@adventuremnc/api": "workspace:*"
   },
   "devDependencies": {
     "@types/three": "0.185.0",

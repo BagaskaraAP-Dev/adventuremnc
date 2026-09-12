@@ -1,8 +1,14 @@
-import { horizonDistance } from '@adventuremnc/shared';
-import { DeathReason } from '@adventuremnc/engine';
+import { horizonDistance, type SecurityState } from '@adventuremnc/shared';
+import { DeathReason, navigationCue } from '@adventuremnc/engine';
 import { RenderMetrics } from '../render/Renderer';
 
 export interface HudTelemetryData {
+  security: SecurityState;
+  visorDust: number;
+  headlights: boolean;
+  cameraYaw: number;
+  airlockTarget: { x: number; z: number };
+  missionTarget: { x: number; z: number; label: string } | undefined;
   x: number;
   y: number;
   z: number;
@@ -49,6 +55,14 @@ export class HUD {
 
   // Visor FX Elements
   private frostOverlay: HTMLElement;
+  private dustOverlay: HTMLElement;
+  private securityElement: HTMLElement;
+  private habitatArrow: HTMLElement;
+  private missionArrow: HTMLElement;
+  private missionNav: HTMLElement;
+  private habitatNav: HTMLElement;
+  private visorStatus: HTMLElement;
+  private transitionOverlay: HTMLElement;
   private heatOverlay: HTMLElement;
   private suffocationOverlay: HTMLElement;
   private crackOverlay: HTMLElement;
@@ -74,6 +88,14 @@ export class HUD {
     this.container = document.createElement('div');
     this.container.id = 'lunar-hud';
     this.container.innerHTML = `
+      <div id="hud-transition" class="hud-transition"></div>
+      <div id="hud-visor-dust" class="hud-visor-layer hud-visor-dust"></div>
+      <div class="hud-navigation" aria-label="Navigation">
+        <div class="hud-nav-item"><span id="hud-hab-arrow" class="hud-bearing">↑</span><span id="hud-hab-nav">HAB AIRLOCK</span></div>
+        <div class="hud-nav-item"><span id="hud-mission-arrow" class="hud-bearing">↑</span><span id="hud-mission-nav">NO ACTIVE CONTRACT</span></div>
+        <div id="hud-security" class="hud-security" data-level="0" role="status">ALERT 0 · BERSIH</div>
+        <div id="hud-visor-status" class="hud-field-status"></div>
+      </div>
       <!-- Fullscreen Atmospheric Visor Overlays -->
       <div id="hud-visor-frost" class="hud-visor-layer hud-visor-frost"></div>
       <div id="hud-visor-heat" class="hud-visor-layer hud-visor-heat"></div>
@@ -166,6 +188,14 @@ export class HUD {
 
     document.body.appendChild(this.container);
 
+    this.dustOverlay = document.getElementById('hud-visor-dust')!;
+    this.securityElement = document.getElementById('hud-security')!;
+    this.habitatArrow = document.getElementById('hud-hab-arrow')!;
+    this.missionArrow = document.getElementById('hud-mission-arrow')!;
+    this.missionNav = document.getElementById('hud-mission-nav')!;
+    this.habitatNav = document.getElementById('hud-hab-nav')!;
+    this.visorStatus = document.getElementById('hud-visor-status')!;
+    this.transitionOverlay = document.getElementById('hud-transition')!;
     this.posElement = document.getElementById('hud-pos')!;
     this.altElement = document.getElementById('hud-alt')!;
     this.horizonElement = document.getElementById('hud-horizon')!;
@@ -267,7 +297,7 @@ export class HUD {
         <span class="hud-key">W / S</span> ACCEL / BRAKE • 
         <span class="hud-key">A / D</span> STEER • 
         <span class="hud-key">SPACE</span> HANDBRAKE • 
-        <span class="hud-key">E</span> EXIT ROVER • 
+        <span class="hud-key">E</span> EXIT ROVER • <span class="hud-key">L</span> LIGHTS •
         ${termBtn} • 
         ${audioBtn}
       `;
@@ -294,7 +324,26 @@ export class HUD {
     }
   }
 
+  public coverTransition(): void {
+    this.transitionOverlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-out' });
+  }
+
   public update(data: HudTelemetryData): void {
+    this.dustOverlay.style.opacity = String(data.mode === 'FLY_CAMERA' ? 0 : data.visorDust * 0.72);
+    const labels = ['BERSIH', 'INVESTIGASI', 'HOSTILE'] as const;
+    const warning = data.security.level > 0 ? ' · RETURN TO HAB AIRLOCK' : '';
+    this.securityElement.textContent = `ALERT ${data.security.level} · ${labels[data.security.level]}${warning}`;
+    this.securityElement.dataset['level'] = String(data.security.level);
+    const home = navigationCue(data, data.airlockTarget, data.cameraYaw);
+    this.habitatArrow.style.transform = `rotate(${home.bearing}rad)`;
+    this.habitatNav.textContent = `HAB AIRLOCK · ${home.distance.toFixed(0)}m`;
+    this.missionArrow.hidden = !data.missionTarget;
+    if (data.missionTarget) {
+      const cue = navigationCue(data, data.missionTarget, data.cameraYaw);
+      this.missionArrow.style.transform = `rotate(${cue.bearing}rad)`;
+      this.missionNav.textContent = `${data.missionTarget.label} · ${cue.distance.toFixed(0)}m`;
+    } else this.missionNav.textContent = 'NO ACTIVE CONTRACT';
+    this.visorStatus.textContent = `VISOR DUST ${Math.round(data.visorDust * 100)}%${data.mode === 'ROVER_DRIVING' ? ` · [L] LIGHTS ${data.headlights ? 'ON' : 'OFF'}` : ''}`;
     const eyeHeight = Math.max(0.0, data.y - data.groundY);
     const horizon = horizonDistance(eyeHeight);
 

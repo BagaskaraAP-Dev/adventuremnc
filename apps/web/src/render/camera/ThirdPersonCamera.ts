@@ -9,6 +9,7 @@ export class ThirdPersonCamera {
   public yaw = 0;
   public pitch = 0.2;
   private distance = 3.6;
+  private lookAtHeight = 1.25;
 
   private currentLookAt = new THREE.Vector3();
   private currentCamPos = new THREE.Vector3();
@@ -43,8 +44,8 @@ export class ThirdPersonCamera {
     });
 
     window.addEventListener('mousemove', (event) => {
-      let dx = 0;
-      let dy = 0;
+      let dx: number;
+      let dy: number;
 
       if (this.isLocked) {
         dx = event.movementX;
@@ -106,7 +107,8 @@ export class ThirdPersonCamera {
   private updateInternal(targetX: number, targetY: number, targetZ: number, dt: number): void {
     this.distance += (this.targetDistance - this.distance) * Math.min(1.0, dt * 8);
 
-    const targetLookAt = new THREE.Vector3(targetX, targetY + this.targetLookAtHeight, targetZ);
+    this.lookAtHeight += (this.targetLookAtHeight - this.lookAtHeight) * Math.min(1, dt * 8);
+    const targetLookAt = new THREE.Vector3(targetX, targetY + this.lookAtHeight, targetZ);
 
     // Calculate desired spherical camera position relative to target
     const cosPitch = Math.cos(this.pitch);
@@ -143,9 +145,9 @@ export class ThirdPersonCamera {
   }
 
   public reset(targetX: number, targetY: number, targetZ: number): void {
-    this.currentCamPos.set(targetX, targetY + 1.8, targetZ + 3.6);
-    this.currentLookAt.set(targetX, targetY + 1.2, targetZ);
-    this.camera.position.copy(this.currentCamPos);
-    this.camera.lookAt(this.currentLookAt);
+    this.distance = this.targetDistance;
+    this.lookAtHeight = this.targetLookAtHeight;
+    this.currentCamPos.set(0, 0, 0);
+    this.updateInternal(targetX, targetY, targetZ, 0);
   }
 }

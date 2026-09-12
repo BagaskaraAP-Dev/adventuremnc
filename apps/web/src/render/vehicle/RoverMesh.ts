@@ -7,6 +7,7 @@ import {
 
 export interface RoverMeshInstance {
   group: THREE.Group;
+  setHeadlights: (enabled: boolean) => void;
   getDriverSeatTransform: (targetPos: THREE.Vector3, targetQuat: THREE.Quaternion) => void;
   getDriverSeatPosition: (target: THREE.Vector3) => void;
   updatePose: (
@@ -213,13 +214,13 @@ export function createRoverMesh(): RoverMeshInstance {
   rightLight.position.set(0.55, 0.22, -1.35);
   bodyGroup.add(rightLight);
 
-  const spotLeft = new THREE.SpotLight(0xffffff, 4.0, 50, Math.PI / 5, 0.35, 1.2);
+  const spotLeft = new THREE.SpotLight(0xe5f3ff, 180, 80, Math.PI / 5, 0.35, 1.2);
   spotLeft.position.set(-0.55, 0.22, -1.35);
   spotLeft.target.position.set(-0.55, -0.5, -25);
   bodyGroup.add(spotLeft);
   bodyGroup.add(spotLeft.target);
 
-  const spotRight = new THREE.SpotLight(0xffffff, 4.0, 50, Math.PI / 5, 0.35, 1.2);
+  const spotRight = new THREE.SpotLight(0xe5f3ff, 180, 80, Math.PI / 5, 0.35, 1.2);
   spotRight.position.set(0.55, 0.22, -1.35);
   spotRight.target.position.set(0.55, -0.5, -25);
   bodyGroup.add(spotRight);
@@ -353,6 +354,11 @@ export function createRoverMesh(): RoverMeshInstance {
 
   return {
     group,
+    setHeadlights: (enabled: boolean) => {
+      spotLeft.visible = enabled;
+      spotRight.visible = enabled;
+      lightMaterial.color.setHex(enabled ? 0xffffff : 0x242a30);
+    },
     getDriverSeatTransform,
     getDriverSeatPosition,
     updatePose,

@@ -2,13 +2,27 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
-    "lib": ["DOM", "DOM.Iterable", "ES2022"]
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ]
   },
   "references": [
-    { "path": "../../packages/shared" },
-    { "path": "../../packages/engine" }
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/engine"
+    },
+    {
+      "path": "../api"
+    }
   ],
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*",
+    "api/**/*"
+  ]
 }

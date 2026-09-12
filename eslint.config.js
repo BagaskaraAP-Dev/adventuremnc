@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
 
 export default [
   {
@@ -25,6 +26,22 @@ export default [
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       'no-console': ['error', { allow: ['warn', 'error', 'info'] }],
       'no-debugger': 'error',
+    },
+  },
+  {
+    files: ['**/*.ts'],
+    languageOptions: { parser: tseslint.parser },
+    plugins: { '@typescript-eslint': tseslint.plugin },
+    rules: {
+      'no-undef': 'off', // TypeScript validates symbols, including DOM and Node globals.
+      'no-unused-vars': 'off', // Enforced by strict noUnusedLocals/noUnusedParameters.
+      '@typescript-eslint/no-explicit-any': 'error',
+    },
+  },
+  {
+    files: ['packages/engine/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: ['three', 'three/*', 'react', 'react/*', 'react-dom', 'react-dom/*', '@adventuremnc/web', '@adventuremnc/web/*'] }],
     },
   },
 ];

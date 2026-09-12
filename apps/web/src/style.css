@@ -701,3 +701,38 @@ body, html {
 .contract-board button { padding: 8px; cursor: pointer; }
 .contract-board button:disabled { opacity: .45; cursor: default; }
 .mission-tracker { position: fixed; top: 90px; right: 20px; max-width: 350px; padding: 12px; background: #07151cdd; color: #aaffdd; font: 13px monospace; white-space: pre-line; pointer-events: none; z-index: 20; }
+
+/* Field navigation stays readable above visor contamination. */
+.hud-navigation {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(380px, 32vw);
+  padding: 10px 14px;
+  border: 1px solid rgba(120, 230, 220, 0.35);
+  border-radius: 6px;
+  background: rgba(5, 14, 20, 0.88);
+  color: #a5fff0;
+  font: 11px/1.6 monospace;
+  z-index: 12;
+  pointer-events: none;
+}
+.hud-nav-item { display: flex; align-items: center; gap: 10px; }
+.hud-bearing { display: inline-block; font-size: 24px; color: #fff; }
+.hud-bearing[hidden] { display: none; }
+.hud-field-status { color: #b5b5aa; margin-top: 4px; }
+.hud-security { padding: 4px 6px; margin-top: 8px; border-left: 3px solid #65ecb2; }
+.hud-security[data-level="1"] { color: #ffcd65; border-color: #ffcd65; background: #362710; }
+.hud-security[data-level="2"] { color: #ffe8e4; border-color: #ff6555; background: #541c17; animation: security-pulse 1.4s ease-in-out infinite; }
+@keyframes security-pulse { 50% { box-shadow: 0 0 16px rgba(255, 60, 30, 0.5); } }
+.hud-visor-dust {
+  background:
+    radial-gradient(ellipse at center, transparent 35%, rgba(116, 106, 85, 0.9) 100%),
+    radial-gradient(circle, rgba(146, 135, 112, 0.75) 0 0.7px, transparent 1.5px) 0 0 / 17px 23px,
+    radial-gradient(circle, rgba(60, 56, 49, 0.65) 0 1px, transparent 2px) 5px 9px / 29px 31px;
+  transition: opacity 0.35s linear;
+}
+.hud-transition { position: fixed; inset: 0; background: #020508; opacity: 0; z-index: 100; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .hud-security[data-level="2"] { animation: none; } }
+@media (max-width: 900px) { .hud-navigation { top: auto; bottom: 100px; width: min(380px, 80vw); } }

@@ -19,7 +19,6 @@ describe('RoverController Dynamics & Braking', () => {
     expect(stateAtTopSpeed.speed).toBeCloseTo(ROVER_MAX_SPEED, 1);
 
     // Apply full brakes
-    let brakingDistance = 0;
     const startZ = rover.getState().z;
 
     for (let i = 0; i < 600; i++) {
@@ -28,7 +27,7 @@ describe('RoverController Dynamics & Braking', () => {
       if (curSpeed <= 0.01) break;
     }
 
-    brakingDistance = Math.abs(rover.getState().z - startZ);
+    const brakingDistance = Math.abs(rover.getState().z - startZ);
     const analyticDistance = (ROVER_MAX_SPEED * ROVER_MAX_SPEED) / (2 * ROVER_BRAKE_DECEL);
 
     // Braking distance must be within 10% of theoretical 12.90 meters

@@ -55,6 +55,22 @@
 ### 12. Data-Driven Mission Scripting & Server-Authoritative Economy (M5/M6)
 - Rationale: To allow rapid creation and tuning of contracts without modifying engine core logic, mission contracts (Cold Courier, Ridge Surveyor, Illegal Salvage) are specified declaratively as immutable data definitions in `packages/engine/src/missions`. The simulation tracks objective sequences, timers, and proximity headless in Node.js. To enforce anti-tamper security in line with GTA-style contract progression, credits and mission completion rewards are strictly server-authoritative (`apps/api`): clients submit interaction events and telemetry via Zod schemas, and the server validates deadline constraints and proximity before disbursing rewards.
 
-## Known Gaps
-- Cloud-hosted Postgres/Redis migration for cross-device multi-server persistence (scheduled for production hardening M8).
-- Security Alert escalation levels with automated Corporate Security enforcement drones (scheduled for M6 phase 2).
+### 13. Durable Vercel Saves with Optimistic Concurrency
+- The Vite project owns its `/api` functions so the public domain and browser use the same origin. A shared HTTP adapter invokes the same `CloudStore` command validation as local development.
+- Production persistence uses Upstash-compatible Redis REST, authenticated only with server environment variables. Filesystem saves remain a development option; Vercel instances must never use ephemeral disk as a durable save store.
+- A Lua compare-and-set checks the previous serialized record before storing the new state. A concurrent request retries from the winner's state, so repeated completion events cannot award credits twice across instances. Redis REST calls time out after five seconds; missing configuration and storage failures return 503.
+- Anonymous bearer sessions preserve the existing contract. Cross-device recovery, account authentication, and abuse-rate limiting remain separate work; the current telemetry travel budget is not a complete movement anti-cheat system.
+
+### 14. Security Alert and Cargo Clearance
+- Pickup starts a 30-second investigation before Hostile escalation. Security is a persistent state separate from mission status: contract expiration cannot wash the alarm. A habitat airlock command validates proximity, secures active salvage, awards its reward once, and clears the status. Respawn clears security by forfeiting the contract and cargo.
+- Mission and security clocks share constant-time server catch-up; browser fixed-step updates predict the HUD until the next authoritative response. Version-1 schema defaults retain compatibility with earlier saves.
+
+### 15. Visor, Navigation, and Camera Feedback
+- Dust exposure and navigation bearings are pure engine functions; DOM overlays and Three.js spotlights remain in the web application. Dust is capped to preserve visibility and cleaned on airlock entry. It is a session visual, not a punitive persistent suit-damage mechanic.
+- Airlock service triggers on entry into interaction range and does not resurrect dead characters. Pressure equalization is immediate gameplay feedback, with the existing airlock sound; no new timed chamber simulation is introduced.
+- Vehicle camera changes interpolate framing without resets or yaw snaps. Respawn relocates directly using the current camera profile beneath a brief fade, avoiding a camera flight across kilometers of terrain. Both headlights toggle together and keyboard repeat does not retrigger actions.
+
+## Remaining Release Dependencies
+- Configure production Redis variables and deploy the Vercel project with root `apps/web`; verify authenticated save/reload on the public domain. Repository verification alone does not establish live deployment health.
+- Corporate Security drone pursuit is not implemented; Level 2 currently drives the Hostile warning and return-to-habitat requirement.
+- Cross-device account recovery and stronger movement/survival authority remain future backend work.
