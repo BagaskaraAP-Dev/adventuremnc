@@ -6,6 +6,8 @@
   "packageManager": "pnpm@12.3.4",
   "scripts": {
     "build": "pnpm --recursive run build",
+    "build:vercel": "pnpm run build && node scripts/build-vercel.js",
+    "deploy:vercel": "pnpm run build:vercel && vercel deploy --prebuilt --prod --yes",
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc --build"
